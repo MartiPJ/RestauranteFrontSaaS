@@ -19,8 +19,7 @@ const route = useRoute()
 const shouldShowNavbar = computed(() => {
   const noNavbarRoutes = ['/login', '/admin-login', '/register', '/forbidden']
   const isNotFoundRoute = route.name === 'NotFound'
-  const isOtpRoute = route.path.startsWith('/otp/')
-  return !noNavbarRoutes.includes(route.path) && !isNotFoundRoute && !isOtpRoute
+  return !noNavbarRoutes.includes(route.path) && !isNotFoundRoute
 })
 
 // Estado local que almacena si el sidebar está minimizado (true) o expandido (false)
