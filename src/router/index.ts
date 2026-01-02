@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import LoginView from '@/views/LoginView.vue'
+import Dashboard from '@/views/Dashboard.vue'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -15,12 +16,12 @@ const routes: RouteRecordRaw[] = [
     component: LoginView,
     meta: { requiresAuth: false },
   },
-  // {
-  //   path: '/dashboard',
-  //   name: 'dashboard',
-  //   component: () => import('@/views/DashboardView.vue'),
-  //   meta: { requiresAuth: true },
-  // },
+  {
+    path: '/dashboard',
+    name: 'dashboard',
+    component: Dashboard,
+    meta: { requiresAuth: false },
+  },
   {
     path: '/',
     redirect: '/dashboard',
