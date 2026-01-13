@@ -37,7 +37,7 @@ const sections: DashboardSection[] = [
     id: 'mesas',
     label: 'Mesas',
     icon: '🪑',
-    route: '/mesas',
+    route: '/tables',
   },
   {
     id: 'ordenar',

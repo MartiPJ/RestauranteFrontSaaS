@@ -4,6 +4,7 @@ import type { RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import LoginView from '@/views/LoginView.vue'
 import Dashboard from '@/views/Dashboard.vue'
+import Table from '@/views/Table.vue'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -23,8 +24,10 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: false },
   },
   {
-    path: '/',
-    redirect: '/dashboard',
+    path: '/tables',
+    name: 'tables',
+    component: Table,
+    meta: { requiresAuth: false },
   },
 ]
 
