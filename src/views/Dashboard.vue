@@ -46,10 +46,10 @@ const sections: DashboardSection[] = [
     route: '/ordenar',
   },
   {
-    id: 'productos',
-    label: 'Productos',
+    id: 'Categorias',
+    label: 'Categorías',
     icon: '🍽️',
-    route: '/productos',
+    route: '/Categories',
   },
   {
     id: 'usuarios',

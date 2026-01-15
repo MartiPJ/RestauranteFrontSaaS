@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import LoginView from '@/views/LoginView.vue'
 import Dashboard from '@/views/Dashboard.vue'
 import Table from '@/views/Table.vue'
+import CategoryView from '@/views/CategoryView.vue'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -27,6 +28,12 @@ const routes: RouteRecordRaw[] = [
     path: '/tables',
     name: 'tables',
     component: Table,
+    meta: { requiresAuth: false },
+  },
+  {
+    path: '/Categories',
+    name: 'categories',
+    component: CategoryView,
     meta: { requiresAuth: false },
   },
 ]
