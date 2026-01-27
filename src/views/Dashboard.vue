@@ -58,10 +58,10 @@ const sections: DashboardSection[] = [
     route: '/Products',
   },
   {
-    id: 'factura',
-    label: 'Factura',
-    icon: '🧾',
-    route: '/factura',
+    id: 'Kitchen',
+    label: 'Kitchen',
+    icon: '🍴',
+    route: '/Kitchen',
   },
 ]
 

@@ -11,6 +11,7 @@ const emit = defineEmits<{
   edit: [table: Table]
   delete: [id: string]
   changeStatus: [id: string, status: TableStatus]
+  takeOrder: [table: Table]
 }>()
 
 const statusConfig = computed(() => {
@@ -57,6 +58,24 @@ const statusConfig = computed(() => {
     </div>
 
     <div class="table-actions">
+      <!-- Botón principal de tomar orden -->
+      <button
+        v-if="table.status === TableStatus.AVAILABLE"
+        @click="emit('takeOrder', table)"
+        class="btn btn-take-order"
+      >
+        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
+          />
+        </svg>
+        Tomar Orden
+      </button>
+
+      <!-- Acciones de estado -->
       <button
         v-if="table.status === TableStatus.AVAILABLE"
         @click="emit('changeStatus', table.id, TableStatus.OCCUPIED)"
@@ -78,6 +97,8 @@ const statusConfig = computed(() => {
       >
         Reservar
       </button>
+
+      <!-- Acciones de gestión -->
       <button @click="emit('edit', table)" class="btn btn-secondary">Editar</button>
       <button @click="emit('delete', table.id)" class="btn btn-danger">Eliminar</button>
     </div>
@@ -155,10 +176,28 @@ const statusConfig = computed(() => {
   transition: all 0.2s;
   flex: 1;
   min-width: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 .btn:hover {
   transform: translateY(-1px);
+}
+
+.btn-take-order {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  flex-basis: 100%;
+  font-weight: 600;
+  font-size: 15px;
+  padding: 12px 16px;
+}
+
+.btn-take-order:hover {
+  background: linear-gradient(135deg, #5568d3 0%, #653a8e 100%);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
 .btn-success {
