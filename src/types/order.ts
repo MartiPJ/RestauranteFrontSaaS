@@ -1,0 +1,102 @@
+// src/types/order.ts
+
+export enum OrderStatus {
+  OPEN = 'open',
+  CLOSED = 'closed',
+  CANCELLED = 'cancelled',
+}
+
+export enum OrderItemStatus {
+  PENDING = 'pending',
+  PREPARING = 'preparing',
+  SERVED = 'served',
+  CANCELLED = 'cancelled',
+}
+
+export interface OrderItem {
+  id: string
+  quantity: number
+  unitPrice: string
+  subtotal: string
+  notes?: string
+  status: OrderItemStatus
+  product: {
+    id: string
+    name: string
+    imageUrl?: string
+  }
+  createdAt: string
+  updatedAt: string
+}
+
+export interface Order {
+  id: string
+  orderNumber: string
+  status: OrderStatus
+  subtotal: string
+  tax: string
+  total: string
+  notes?: string
+  closedAt?: string | null
+  table?: {
+    id: string
+    tableNumber: string
+  } | null
+  user: {
+    id: string
+    name: string
+  }
+  items?: OrderItem[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CreateOrderDTO {
+  tableId?: string | null
+  notes?: string
+  items: {
+    productId: string
+    quantity: number
+    notes?: string
+  }[]
+}
+
+export interface UpdateOrderDTO {
+  notes?: string
+}
+
+export interface UpdateOrderStatusDTO {
+  status: OrderStatus
+}
+
+export interface AddOrderItemsDTO {
+  items: {
+    productId: string
+    quantity: number
+    notes?: string
+  }[]
+}
+
+export interface UpdateOrderItemDTO {
+  quantity?: number
+  notes?: string
+  status?: OrderItemStatus
+}
+
+export interface PaginatedResponse<T> {
+  data: T[]
+  meta: {
+    itemsPerPage: number
+    totalItems: number
+    currentPage: number
+    totalPages: number
+    sortBy: string[][]
+  }
+  links: {
+    current: string
+    first?: string
+    previous?: string
+    next?: string
+    last?: string
+  }
+}

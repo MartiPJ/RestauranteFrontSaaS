@@ -7,6 +7,7 @@ import Dashboard from '@/views/Dashboard.vue'
 import Table from '@/views/Table.vue'
 import CategoryView from '@/views/CategoryView.vue'
 import ProductView from '@/views/ProductView.vue'
+import OrdersView from '@/views/OrdersView.vue'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -41,6 +42,12 @@ const routes: RouteRecordRaw[] = [
     path: '/Products',
     name: 'products',
     component: ProductView,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/Orders',
+    name: 'orders',
+    component: OrdersView,
     meta: { requiresAuth: true },
   },
 ]

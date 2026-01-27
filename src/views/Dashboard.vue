@@ -43,7 +43,7 @@ const sections: DashboardSection[] = [
     id: 'ordenar',
     label: 'Ordenar',
     icon: '📋',
-    route: '/ordenar',
+    route: '/orders',
   },
   {
     id: 'Categorias',
