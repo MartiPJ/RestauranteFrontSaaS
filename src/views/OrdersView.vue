@@ -3,7 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useOrderStore } from '@/stores/orderStore'
 import { useTableStore } from '@/stores/tableStore'
 import OrderCard from '@/components/OrderCard.vue'
-import OrderMenuModal from '@/components/OrderMenuModal.vue'
+import MenuModal from '@/components/MenuModal.vue'
 import type { Order, OrderStatus } from '@/types/order'
 import type { Table } from '@/types/table'
 import { TableStatus } from '@/types/table'
@@ -267,7 +267,7 @@ const handleFilterChange = async (status: string) => {
       />
     </div>
 
-    <OrderMenuModal
+    <MenuModal
       :show="showMenuModal"
       :table="selectedTable"
       :is-for-takeout="isForTakeout"

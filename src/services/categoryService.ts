@@ -5,6 +5,7 @@ import type {
   Category,
   CreateCategoryDto,
   UpdateCategoryDto,
+  Product,
 } from '@/types/category'
 
 export const categoryService = {
@@ -40,5 +41,25 @@ export const categoryService = {
 
   async toggleActive(id: string, isActive: boolean): Promise<Category> {
     return api.patch<Category>(`/api/categories/${id}`, { isActive })
+  },
+
+  // Obtener una categoría por ID
+  async getCategoryById(id: string): Promise<Category> {
+    try {
+      return await api.get<Category>(`/api/categories/${id}`)
+    } catch (error) {
+      console.error('Error al obtener categoría:', error)
+      throw error
+    }
+  },
+
+  // Obtener productos de una categoría
+  async getProductsByCategory(categoryId: string): Promise<Product[]> {
+    try {
+      return await api.get<Product[]>(`/api/categories/${categoryId}/products`)
+    } catch (error) {
+      console.error('Error al obtener productos de categoría:', error)
+      throw error
+    }
   },
 }

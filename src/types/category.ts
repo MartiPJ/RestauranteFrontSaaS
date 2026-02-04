@@ -3,6 +3,7 @@ export interface Category {
   id: string
   name: string
   description: string
+  imageUrl?: string
   displayOrder: number
   isActive: boolean
   createdAt: string
@@ -34,6 +35,7 @@ export interface CategoriesResponse {
 export interface CreateCategoryDto {
   name: string
   description: string
+  imageUrl?: string
   displayOrder: number
   isActive: boolean
 }
@@ -41,6 +43,23 @@ export interface CreateCategoryDto {
 export interface UpdateCategoryDto {
   name?: string
   description?: string
+  imageUrl?: string
   displayOrder?: number
   isActive?: boolean
+}
+
+export interface Product {
+  id: string
+  name: string
+  description?: string
+  imageUrl?: string
+  price: string
+  isAvailable: boolean
+  categoryId: string
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface CategoryWithProducts extends Category {
+  products?: Product[]
 }

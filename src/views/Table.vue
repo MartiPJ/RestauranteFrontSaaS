@@ -1,14 +1,18 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useTableStore } from '@/stores/tableStore'
+import { useOrderStore } from '@/stores/orderStore'
 import TableCard from '@/components/TableCard.vue'
 import TableModal from '@/components/TableModal.vue'
+import MenuModal from '@/components/MenuModal.vue'
 import type { Table, CreateTableDTO } from '@/types/table'
 import { TableStatus } from '@/types/table'
 
 const tableStore = useTableStore()
+const orderStore = useOrderStore()
 
-const showModal = ref(false)
+const showTableModal = ref(false)
+const showMenuModal = ref(false)
 const isEdit = ref(false)
 const selectedTable = ref<Table | null>(null)
 const filterStatus = ref<string>('all')
@@ -26,7 +30,6 @@ const filteredTables = computed(() => {
   }
 
   if (searchQuery.value) {
-    // Cambia t.name por t.tableNumber
     result = result.filter((t) =>
       t.tableNumber.toLowerCase().includes(searchQuery.value.toLowerCase()),
     )
@@ -38,13 +41,18 @@ const filteredTables = computed(() => {
 const openCreateModal = () => {
   isEdit.value = false
   selectedTable.value = null
-  showModal.value = true
+  showTableModal.value = true
 }
 
 const openEditModal = (table: Table) => {
   isEdit.value = true
   selectedTable.value = table
-  showModal.value = true
+  showTableModal.value = true
+}
+
+const openTakeOrderModal = (table: Table) => {
+  selectedTable.value = table
+  showMenuModal.value = true
 }
 
 const handleSubmit = async (data: CreateTableDTO) => {
@@ -54,9 +62,37 @@ const handleSubmit = async (data: CreateTableDTO) => {
     } else {
       await tableStore.createTable(data)
     }
-    showModal.value = false
+    showTableModal.value = false
   } catch (error: any) {
     alert(error.message || 'Error al guardar la mesa')
+  }
+}
+
+const handleCreateOrder = async (
+  items: { productId: string; quantity: number; notes?: string }[],
+  orderNotes?: string,
+) => {
+  try {
+    if (!selectedTable.value) {
+      alert('Error: No se ha seleccionado una mesa')
+      return
+    }
+
+    await orderStore.createOrder({
+      tableId: selectedTable.value.id,
+      items,
+      notes: orderNotes,
+    })
+
+    // Actualizar el estado de la mesa a ocupada
+    await tableStore.updateTable(selectedTable.value.id, { status: TableStatus.OCCUPIED })
+
+    showMenuModal.value = false
+    selectedTable.value = null
+
+    alert('¡Orden creada exitosamente!')
+  } catch (error: any) {
+    alert(error.message || 'Error al crear la orden')
   }
 }
 
@@ -72,7 +108,6 @@ const handleDelete = async (id: string) => {
 
 const handleStatusChange = async (id: string, status: TableStatus) => {
   try {
-    // Usa updateTable en lugar de updateTableStatus
     await tableStore.updateTable(id, { status })
   } catch (error: any) {
     alert(error.message || 'Error al cambiar el estado')
@@ -204,15 +239,24 @@ const handleStatusChange = async (id: string, status: TableStatus) => {
         @edit="openEditModal"
         @delete="handleDelete"
         @change-status="handleStatusChange"
+        @take-order="openTakeOrderModal"
       />
     </div>
 
     <TableModal
-      :show="showModal"
+      :show="showTableModal"
       :table="selectedTable"
       :is-edit="isEdit"
-      @close="showModal = false"
+      @close="showTableModal = false"
       @submit="handleSubmit"
+    />
+
+    <MenuModal
+      :show="showMenuModal"
+      :table="selectedTable"
+      :is-for-takeout="false"
+      @close="showMenuModal = false"
+      @submit="handleCreateOrder"
     />
   </div>
 </template>
