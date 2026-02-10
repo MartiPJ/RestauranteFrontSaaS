@@ -17,8 +17,14 @@ const statusConfig = computed(() => {
   switch (props.order.status) {
     case OrderStatus.OPEN:
       return { color: '#10b981', label: 'Abierta', bgColor: '#d1fae5' }
-    case OrderStatus.CLOSED:
-      return { color: '#6b7280', label: 'Cerrada', bgColor: '#f3f4f6' }
+    case OrderStatus.IN_PROGRESS:
+      return { color: '#3b82f6', label: 'En Progreso', bgColor: '#dbeafe' }
+    case OrderStatus.READY:
+      return { color: '#f59e0b', label: 'Lista', bgColor: '#fef3c7' }
+    case OrderStatus.DELIVERED:
+      return { color: '#8b5cf6', label: 'Entregada', bgColor: '#ede9fe' }
+    case OrderStatus.PAID:
+      return { color: '#6b7280', label: 'Pagada', bgColor: '#f3f4f6' }
     case OrderStatus.CANCELLED:
       return { color: '#ef4444', label: 'Cancelada', bgColor: '#fee2e2' }
     default:
@@ -100,11 +106,11 @@ const formattedDate = computed(() => {
     <div class="order-actions">
       <button @click="emit('view', order)" class="btn btn-primary">Ver Detalle</button>
       <button
-        v-if="order.status === OrderStatus.OPEN"
-        @click="emit('updateStatus', order.id, OrderStatus.CLOSED)"
+        v-if="order.status === OrderStatus.OPEN || order.status === OrderStatus.DELIVERED"
+        @click="emit('updateStatus', order.id, OrderStatus.PAID)"
         class="btn btn-success"
       >
-        Cerrar Orden
+        Marcar como Pagada
       </button>
       <button
         v-if="order.status === OrderStatus.OPEN"

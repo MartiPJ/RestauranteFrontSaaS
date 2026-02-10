@@ -4,9 +4,11 @@ import { useOrderStore } from '@/stores/orderStore'
 import { useTableStore } from '@/stores/tableStore'
 import OrderCard from '@/components/OrderCard.vue'
 import MenuModal from '@/components/MenuModal.vue'
-import type { Order, OrderStatus } from '@/types/order'
+import type { Order, OrderItemStatus } from '@/types/order'
+import { OrderStatus } from '@/types/order'
 import type { Table } from '@/types/table'
 import { TableStatus } from '@/types/table'
+import OrderDetailModal from '@/components/OrderDetailModal.vue'
 
 const orderStore = useOrderStore()
 const tableStore = useTableStore()
@@ -17,6 +19,10 @@ const isForTakeout = ref(false)
 const filterStatus = ref<string>('open')
 const searchQuery = ref('')
 const selectedOrderId = ref<string | null>(null)
+const showOrderDetailModal = ref(false)
+const showToast = ref(false)
+const toastMessage = ref('')
+const toastType = ref<'success' | 'error'>('success')
 
 onMounted(async () => {
   await Promise.all([orderStore.fetchOrders({ status: 'open' }), tableStore.fetchTables()])
@@ -52,6 +58,16 @@ const openTakeoutOrderModal = () => {
   showMenuModal.value = true
 }
 
+const triggerToast = (message: string, type: 'success' | 'error' = 'success') => {
+  toastMessage.value = message
+  toastType.value = type
+  showToast.value = true
+
+  setTimeout(() => {
+    showToast.value = false
+  }, 3000)
+}
+
 const handleCreateOrder = async (
   items: { productId: string; quantity: number; notes?: string }[],
   orderNotes?: string,
@@ -62,34 +78,47 @@ const handleCreateOrder = async (
       items,
       notes: orderNotes,
     })
+
     showMenuModal.value = false
-    // Actualizar el estado de la mesa si es necesario
-    if (selectedTable.value) {
-      await tableStore.updateTable(selectedTable.value.id, { status: TableStatus.OCCUPIED })
-    }
     selectedTable.value = null
+
+    await Promise.all([
+      orderStore.fetchOrders({
+        status: filterStatus.value === 'all' ? undefined : filterStatus.value,
+      }),
+      tableStore.fetchTables(),
+    ])
+
+    triggerToast('¡Orden creada exitosamente!', 'success')
   } catch (error: any) {
-    alert(error.message || 'Error al crear la orden')
+    triggerToast(error.message || 'Error al crear la orden', 'error')
   }
 }
 
 const handleViewOrder = (order: Order) => {
   selectedOrderId.value = order.id
-  // Aquí podrías abrir un modal de detalle o navegar a otra vista
-  // Por ahora solo mostramos un alert
-  alert(`Ver detalle de orden: ${order.orderNumber}`)
+  showOrderDetailModal.value = true
 }
 
 const handleUpdateStatus = async (id: string, status: OrderStatus) => {
   try {
     await orderStore.updateOrderStatus(id, status)
-    // Si se cierra una orden, liberar la mesa
-    if (status === 'closed') {
+
+    // Si se marca como pagada, liberar la mesa si tiene mesa
+    if (status === OrderStatus.PAID) {
       const order = orderStore.getOrderById(id)
       if (order?.table) {
         await tableStore.updateTable(order.table.id, { status: TableStatus.AVAILABLE })
       }
     }
+
+    // Refrescar datos
+    await Promise.all([
+      orderStore.fetchOrders({
+        status: filterStatus.value === 'all' ? undefined : filterStatus.value,
+      }),
+      tableStore.fetchTables(),
+    ])
   } catch (error: any) {
     alert(error.message || 'Error al actualizar estado')
   }
@@ -107,10 +136,38 @@ const handleDelete = async (id: string) => {
 
 const handleFilterChange = async (status: string) => {
   filterStatus.value = status
-  if (status === 'all') {
-    await orderStore.fetchOrders()
-  } else {
-    await orderStore.fetchOrders({ status })
+
+  // Mapear filtros frontend a backend si es necesario
+  let backendStatus = status
+  if (status === 'closed') {
+    backendStatus = 'paid' // Mapear 'closed' a 'paid' para el backend
+  }
+
+  await orderStore.fetchOrders({
+    status: status === 'all' ? undefined : backendStatus,
+  })
+}
+const handleUpdateItemStatus = async (itemId: string, status: OrderItemStatus) => {
+  try {
+    await orderStore.updateOrderItem(itemId, { status })
+    // Refrescar la orden actual
+    if (selectedOrderId.value) {
+      await orderStore.fetchOrderById(selectedOrderId.value)
+    }
+  } catch (error: any) {
+    alert(error.message || 'Error al actualizar estado del item')
+  }
+}
+
+const handleCloseOrder = async (orderId: string) => {
+  try {
+    await orderStore.updateOrderStatus(orderId, OrderStatus.PAID)
+    showOrderDetailModal.value = false
+    await orderStore.fetchOrders({
+      status: filterStatus.value === 'all' ? undefined : filterStatus.value,
+    })
+  } catch (error: any) {
+    alert(error.message || 'Error al cerrar la orden')
   }
 }
 </script>
@@ -135,18 +192,56 @@ const handleFilterChange = async (status: string) => {
         </div>
       </div>
 
+      <OrderDetailModal
+        :show="showOrderDetailModal"
+        :order-id="selectedOrderId"
+        @close="showOrderDetailModal = false"
+        @update-item-status="handleUpdateItemStatus"
+        @close-order="handleCloseOrder"
+      />
+
+      <Transition name="toast">
+        <div v-if="showToast" :class="['toast', toastType]">
+          {{ toastMessage }}
+        </div>
+      </Transition>
+
       <div class="stats-grid">
         <div class="stat-card open">
-          <div class="stat-value">{{ orderStore.openOrders.length }}</div>
+          <div class="stat-value">
+            {{ orderStore.orders.filter((o) => o.status === OrderStatus.OPEN).length }}
+          </div>
           <div class="stat-label">Órdenes Abiertas</div>
         </div>
-        <div class="stat-card closed">
-          <div class="stat-value">{{ orderStore.closedOrders.length }}</div>
-          <div class="stat-label">Órdenes Cerradas</div>
+        <div class="stat-card in-progress">
+          <div class="stat-value">
+            {{ orderStore.orders.filter((o) => o.status === OrderStatus.IN_PROGRESS).length }}
+          </div>
+          <div class="stat-label">En Progreso</div>
+        </div>
+        <div class="stat-card ready">
+          <div class="stat-value">
+            {{ orderStore.orders.filter((o) => o.status === OrderStatus.READY).length }}
+          </div>
+          <div class="stat-label">Listas</div>
+        </div>
+        <div class="stat-card delivered">
+          <div class="stat-value">
+            {{ orderStore.orders.filter((o) => o.status === OrderStatus.DELIVERED).length }}
+          </div>
+          <div class="stat-label">Entregadas</div>
+        </div>
+        <div class="stat-card paid">
+          <div class="stat-value">
+            {{ orderStore.orders.filter((o) => o.status === OrderStatus.PAID).length }}
+          </div>
+          <div class="stat-label">Pagadas</div>
         </div>
         <div class="stat-card cancelled">
-          <div class="stat-value">{{ orderStore.cancelledOrders.length }}</div>
-          <div class="stat-label">Órdenes Canceladas</div>
+          <div class="stat-value">
+            {{ orderStore.orders.filter((o) => o.status === OrderStatus.CANCELLED).length }}
+          </div>
+          <div class="stat-label">Canceladas</div>
         </div>
       </div>
     </div>
@@ -367,6 +462,21 @@ const handleFilterChange = async (status: string) => {
   border-left-color: #ef4444;
 }
 
+.stat-card.in-progress {
+  border-left-color: #3b82f6;
+}
+
+.stat-card.ready {
+  border-left-color: #f59e0b;
+}
+
+.stat-card.delivered {
+  border-left-color: #8b5cf6;
+}
+
+.stat-card.paid {
+  border-left-color: #6b7280;
+}
 .stat-value {
   font-size: 32px;
   font-weight: 700;
@@ -634,5 +744,37 @@ const handleFilterChange = async (status: string) => {
   .tables-grid {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   }
+}
+
+/* Toast styles of the OrderDetails*/
+.toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  padding: 14px 20px;
+  border-radius: 10px;
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  z-index: 2000;
+}
+
+.toast.success {
+  background-color: #10b981;
+}
+
+.toast.error {
+  background-color: #ef4444;
+}
+
+.toast-enter-active,
+.toast-leave-active {
+  transition: all 0.3s ease;
+}
+
+.toast-enter-from,
+.toast-leave-to {
+  opacity: 0;
+  transform: translateY(20px);
 }
 </style>

@@ -58,9 +58,9 @@ const statusConfig = computed(() => {
     </div>
 
     <div class="table-actions">
-      <!-- Botón principal de tomar orden -->
+      <!-- Botón de tomar orden - disponible incluso en mesas ocupadas -->
       <button
-        v-if="table.status === TableStatus.AVAILABLE"
+        v-if="table.status === TableStatus.AVAILABLE || table.status === TableStatus.OCCUPIED"
         @click="emit('takeOrder', table)"
         class="btn btn-take-order"
       >
@@ -72,7 +72,7 @@ const statusConfig = computed(() => {
             d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
           />
         </svg>
-        Tomar Orden
+        {{ table.status === TableStatus.OCCUPIED ? 'Agregar Orden' : 'Tomar Orden' }}
       </button>
 
       <!-- Acciones de estado -->

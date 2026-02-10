@@ -1,8 +1,12 @@
 // src/types/order.ts
 
+// src/types/order.ts
 export enum OrderStatus {
   OPEN = 'open',
-  CLOSED = 'closed',
+  IN_PROGRESS = 'in_progress',
+  READY = 'ready',
+  DELIVERED = 'delivered',
+  PAID = 'paid',
   CANCELLED = 'cancelled',
 }
 

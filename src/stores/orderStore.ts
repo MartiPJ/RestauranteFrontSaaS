@@ -9,8 +9,8 @@ import type {
   UpdateOrderStatusDTO,
   AddOrderItemsDTO,
   UpdateOrderItemDTO,
-  OrderStatus,
 } from '@/types/order'
+import { OrderStatus } from '@/types/order'
 
 export const useOrderStore = defineStore('order', () => {
   const orders = ref<Order[]>([])
@@ -24,12 +24,24 @@ export const useOrderStore = defineStore('order', () => {
   const totalItems = ref(0)
   const totalPages = ref(0)
 
-  // Computed
-  const openOrders = computed(() => orders.value.filter((o) => o.status === 'open'))
+  // Computed - Usar el enum OrderStatus
+  const openOrders = computed(() => orders.value.filter((o) => o.status === OrderStatus.OPEN))
 
-  const closedOrders = computed(() => orders.value.filter((o) => o.status === 'closed'))
+  const inProgressOrders = computed(() =>
+    orders.value.filter((o) => o.status === OrderStatus.IN_PROGRESS),
+  )
 
-  const cancelledOrders = computed(() => orders.value.filter((o) => o.status === 'cancelled'))
+  const readyOrders = computed(() => orders.value.filter((o) => o.status === OrderStatus.READY))
+
+  const deliveredOrders = computed(() =>
+    orders.value.filter((o) => o.status === OrderStatus.DELIVERED),
+  )
+
+  const paidOrders = computed(() => orders.value.filter((o) => o.status === OrderStatus.PAID))
+
+  const cancelledOrders = computed(() =>
+    orders.value.filter((o) => o.status === OrderStatus.CANCELLED),
+  )
 
   // Actions
   async function fetchOrders(params?: {
@@ -213,7 +225,10 @@ export const useOrderStore = defineStore('order', () => {
     totalItems,
     totalPages,
     openOrders,
-    closedOrders,
+    inProgressOrders,
+    readyOrders,
+    deliveredOrders,
+    paidOrders,
     cancelledOrders,
     fetchOrders,
     fetchOrderById,

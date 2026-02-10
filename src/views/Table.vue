@@ -78,21 +78,49 @@ const handleCreateOrder = async (
       return
     }
 
-    await orderStore.createOrder({
-      tableId: selectedTable.value.id,
-      items,
-      notes: orderNotes,
-    })
+    // Si la mesa ya tiene órdenes abiertas, agregar items a la orden existente
+    const openOrdersForTable = orderStore.orders.filter(
+      (order) => order.table?.id === selectedTable.value?.id && order.status === 'open',
+    )
 
-    // Actualizar el estado de la mesa a ocupada
-    await tableStore.updateTable(selectedTable.value.id, { status: TableStatus.OCCUPIED })
+    // Tomar la orden abierta más reciente (si existe)
+    const existingOrder = openOrdersForTable
+      .slice()
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+
+    if (existingOrder) {
+      // Agregar items a la orden abierta encontrada
+      await orderStore.addOrderItems(existingOrder.id, { items })
+
+      // Asegurar que la mesa esté marcada como ocupada
+      if (selectedTable.value.status !== TableStatus.OCCUPIED) {
+        await tableStore.updateTable(selectedTable.value.id, { status: TableStatus.OCCUPIED })
+      }
+
+      alert('¡Items agregados a la orden existente!')
+    } else {
+      // Crear nueva orden
+      await orderStore.createOrder({
+        tableId: selectedTable.value.id,
+        items,
+        notes: orderNotes,
+      })
+
+      // Actualizar el estado de la mesa a ocupada
+      if (selectedTable.value.status !== TableStatus.OCCUPIED) {
+        await tableStore.updateTable(selectedTable.value.id, { status: TableStatus.OCCUPIED })
+      }
+
+      alert('¡Orden creada exitosamente!')
+    }
 
     showMenuModal.value = false
     selectedTable.value = null
 
-    alert('¡Orden creada exitosamente!')
+    // Refrescar datos
+    await Promise.all([orderStore.fetchOrders(), tableStore.fetchTables()])
   } catch (error: any) {
-    alert(error.message || 'Error al crear la orden')
+    alert(error.message || 'Error al procesar la orden')
   }
 }
 
