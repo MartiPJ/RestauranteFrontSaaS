@@ -55,6 +55,22 @@ export interface Order {
   updatedAt: string
 }
 
+export interface OrderResponse {
+  id: string
+  orderNumber: string
+  status: string
+  subtotal: string
+  tax: string
+  total: string
+  notes?: string | null
+  orderItems?: OrderItem[]
+  createdAt: string
+  updatedAt: string
+  closedAt?: string | null
+  table?: any
+  user?: any
+}
+
 export interface CreateOrderDTO {
   tableId?: string | null
   notes?: string

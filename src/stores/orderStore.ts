@@ -9,6 +9,7 @@ import type {
   UpdateOrderStatusDTO,
   AddOrderItemsDTO,
   UpdateOrderItemDTO,
+  OrderResponse,
 } from '@/types/order'
 import { OrderStatus } from '@/types/order'
 
@@ -68,12 +69,13 @@ export const useOrderStore = defineStore('order', () => {
     }
   }
 
-  async function fetchOrderById(id: string) {
+  async function fetchOrderById(id: string): Promise<OrderResponse> {
     loading.value = true
     error.value = null
     try {
       const order = await orderService.getOrderById(id)
       currentOrder.value = order
+      console.log('ORDER DATA:', order)
       return order
     } catch (e: any) {
       error.value = e.message || 'Error al cargar la orden'

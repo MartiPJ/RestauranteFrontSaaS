@@ -4,10 +4,10 @@ import { useOrderStore } from '@/stores/orderStore'
 import { useTableStore } from '@/stores/tableStore'
 import OrderCard from '@/components/OrderCard.vue'
 import MenuModal from '@/components/MenuModal.vue'
+import ConfirmationModal from '@/components/Confirmationmodal.vue'
 import type { Order, OrderItemStatus } from '@/types/order'
 import { OrderStatus } from '@/types/order'
 import type { Table } from '@/types/table'
-import { TableStatus } from '@/types/table'
 import OrderDetailModal from '@/components/OrderDetailModal.vue'
 
 const orderStore = useOrderStore()
@@ -23,6 +23,13 @@ const showOrderDetailModal = ref(false)
 const showToast = ref(false)
 const toastMessage = ref('')
 const toastType = ref<'success' | 'error'>('success')
+
+// Estados para el modal de confirmación
+const showDeleteConfirmation = ref(false)
+const orderToDelete = ref<string | null>(null)
+
+const showCancelConfirmation = ref(false)
+const orderToCancel = ref<{ id: string; status: OrderStatus } | null>(null)
 
 onMounted(async () => {
   await Promise.all([orderStore.fetchOrders({ status: 'open' }), tableStore.fetchTables()])
@@ -100,74 +107,68 @@ const handleViewOrder = (order: Order) => {
   showOrderDetailModal.value = true
 }
 
-const handleUpdateStatus = async (id: string, status: OrderStatus) => {
+const handleUpdateStatus = (id: string, status: OrderStatus) => {
+  orderToCancel.value = { id, status }
+  showCancelConfirmation.value = true
+}
+
+const confirmCancelOrder = async () => {
+  if (!orderToCancel.value) return
+
   try {
-    await orderStore.updateOrderStatus(id, status)
+    await orderStore.updateOrderStatus(orderToCancel.value.id, orderToCancel.value.status)
 
-    // Si se marca como pagada, liberar la mesa si tiene mesa
-    if (status === OrderStatus.PAID) {
-      const order = orderStore.getOrderById(id)
-      if (order?.table) {
-        await tableStore.updateTable(order.table.id, { status: TableStatus.AVAILABLE })
-      }
-    }
-
-    // Refrescar datos
     await Promise.all([
       orderStore.fetchOrders({
         status: filterStatus.value === 'all' ? undefined : filterStatus.value,
       }),
       tableStore.fetchTables(),
     ])
+
+    triggerToast('Orden cancelada exitosamente', 'success')
   } catch (error: any) {
-    alert(error.message || 'Error al actualizar estado')
+    triggerToast(error.message || 'Error al cancelar la orden', 'error')
+  } finally {
+    showCancelConfirmation.value = false
+    orderToCancel.value = null
   }
 }
 
-const handleDelete = async (id: string) => {
-  if (confirm('¿Estás seguro de eliminar esta orden?')) {
-    try {
-      await orderStore.deleteOrder(id)
-    } catch (error: any) {
-      alert(error.message || 'Error al eliminar orden')
-    }
+const handleDelete = (id: string) => {
+  orderToDelete.value = id
+  showDeleteConfirmation.value = true
+}
+
+const confirmDeleteOrder = async () => {
+  if (!orderToDelete.value) return
+
+  try {
+    await orderStore.deleteOrder(orderToDelete.value)
+    triggerToast('Orden eliminada exitosamente', 'success')
+  } catch (error: any) {
+    triggerToast(error.message || 'Error al eliminar la orden', 'error')
+  } finally {
+    showDeleteConfirmation.value = false
+    orderToDelete.value = null
   }
 }
 
 const handleFilterChange = async (status: string) => {
   filterStatus.value = status
-
-  // Mapear filtros frontend a backend si es necesario
-  let backendStatus = status
-  if (status === 'closed') {
-    backendStatus = 'paid' // Mapear 'closed' a 'paid' para el backend
-  }
-
   await orderStore.fetchOrders({
-    status: status === 'all' ? undefined : backendStatus,
+    status: status === 'all' ? undefined : status,
   })
 }
+
 const handleUpdateItemStatus = async (itemId: string, status: OrderItemStatus) => {
   try {
     await orderStore.updateOrderItem(itemId, { status })
-    // Refrescar la orden actual
     if (selectedOrderId.value) {
       await orderStore.fetchOrderById(selectedOrderId.value)
     }
+    triggerToast('Estado del item actualizado', 'success')
   } catch (error: any) {
-    alert(error.message || 'Error al actualizar estado del item')
-  }
-}
-
-const handleCloseOrder = async (orderId: string) => {
-  try {
-    await orderStore.updateOrderStatus(orderId, OrderStatus.PAID)
-    showOrderDetailModal.value = false
-    await orderStore.fetchOrders({
-      status: filterStatus.value === 'all' ? undefined : filterStatus.value,
-    })
-  } catch (error: any) {
-    alert(error.message || 'Error al cerrar la orden')
+    triggerToast(error.message || 'Error al actualizar estado del item', 'error')
   }
 }
 </script>
@@ -197,7 +198,28 @@ const handleCloseOrder = async (orderId: string) => {
         :order-id="selectedOrderId"
         @close="showOrderDetailModal = false"
         @update-item-status="handleUpdateItemStatus"
-        @close-order="handleCloseOrder"
+      />
+
+      <ConfirmationModal
+        :show="showDeleteConfirmation"
+        title="¿Eliminar orden?"
+        message="¿Estás seguro de eliminar esta orden? Esta acción no se puede deshacer."
+        confirm-text="Sí, eliminar"
+        cancel-text="Cancelar"
+        type="danger"
+        @confirm="confirmDeleteOrder"
+        @cancel="showDeleteConfirmation = false"
+      />
+
+      <ConfirmationModal
+        :show="showCancelConfirmation"
+        title="¿Cancelar orden?"
+        message="¿Estás seguro de cancelar esta orden?"
+        confirm-text="Sí, cancelar"
+        cancel-text="No"
+        type="warning"
+        @confirm="confirmCancelOrder"
+        @cancel="showCancelConfirmation = false"
       />
 
       <Transition name="toast">
@@ -307,12 +329,6 @@ const handleCloseOrder = async (orderId: string) => {
           :class="['filter-btn', 'open', { active: filterStatus === 'open' }]"
         >
           Abiertas
-        </button>
-        <button
-          @click="handleFilterChange('closed')"
-          :class="['filter-btn', 'closed', { active: filterStatus === 'closed' }]"
-        >
-          Cerradas
         </button>
         <button
           @click="handleFilterChange('cancelled')"
@@ -454,10 +470,6 @@ const handleCloseOrder = async (orderId: string) => {
   border-left-color: #10b981;
 }
 
-.stat-card.closed {
-  border-left-color: #6b7280;
-}
-
 .stat-card.cancelled {
   border-left-color: #ef4444;
 }
@@ -477,6 +489,7 @@ const handleCloseOrder = async (orderId: string) => {
 .stat-card.paid {
   border-left-color: #6b7280;
 }
+
 .stat-value {
   font-size: 32px;
   font-weight: 700;
@@ -637,11 +650,6 @@ const handleCloseOrder = async (orderId: string) => {
   border-color: #10b981;
 }
 
-.filter-btn.closed.active {
-  background-color: #6b7280;
-  border-color: #6b7280;
-}
-
 .filter-btn.cancelled.active {
   background-color: #ef4444;
   border-color: #ef4444;
@@ -746,7 +754,7 @@ const handleCloseOrder = async (orderId: string) => {
   }
 }
 
-/* Toast styles of the OrderDetails*/
+/* Toast styles */
 .toast {
   position: fixed;
   bottom: 20px;

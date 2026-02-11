@@ -106,13 +106,6 @@ const formattedDate = computed(() => {
     <div class="order-actions">
       <button @click="emit('view', order)" class="btn btn-primary">Ver Detalle</button>
       <button
-        v-if="order.status === OrderStatus.OPEN || order.status === OrderStatus.DELIVERED"
-        @click="emit('updateStatus', order.id, OrderStatus.PAID)"
-        class="btn btn-success"
-      >
-        Marcar como Pagada
-      </button>
-      <button
         v-if="order.status === OrderStatus.OPEN"
         @click="emit('updateStatus', order.id, OrderStatus.CANCELLED)"
         class="btn btn-warning"
@@ -120,7 +113,7 @@ const formattedDate = computed(() => {
         Cancelar
       </button>
       <button
-        v-if="order.status !== OrderStatus.OPEN"
+        v-if="order.status === OrderStatus.CANCELLED"
         @click="emit('delete', order.id)"
         class="btn btn-danger"
       >
@@ -251,15 +244,6 @@ const formattedDate = computed(() => {
 
 .btn-primary:hover {
   background-color: #2563eb;
-}
-
-.btn-success {
-  background-color: #10b981;
-  color: white;
-}
-
-.btn-success:hover {
-  background-color: #059669;
 }
 
 .btn-warning {

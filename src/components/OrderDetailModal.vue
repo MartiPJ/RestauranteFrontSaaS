@@ -1,6 +1,6 @@
 <!-- src/components/OrderDetailModal.vue -->
 <script setup lang="ts">
-import { ref, onMounted, watch, computed } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { useOrderStore } from '@/stores/orderStore'
 import type { Order, OrderItem } from '@/types/order'
 import { OrderItemStatus, OrderStatus } from '@/types/order'
@@ -16,7 +16,6 @@ const props = defineProps<{
 const emit = defineEmits<{
   close: []
   updateItemStatus: [itemId: string, status: OrderItemStatus]
-  closeOrder: [orderId: string]
 }>()
 
 const order = ref<Order | null>(null)
@@ -28,7 +27,6 @@ const statusOptions = [
   { value: OrderItemStatus.CANCELLED, label: 'Cancelado', color: '#ef4444' },
 ]
 
-// Agregar computed properties para manejar el estado de la orden
 const orderStatusLabel = computed(() => {
   if (!order.value) return ''
 
@@ -71,12 +69,6 @@ const orderStatusColor = computed(() => {
   }
 })
 
-const canCloseOrder = computed(() => {
-  if (!order.value) return false
-  // Permitir marcar como pagada si la orden está abierta o entregada
-  return order.value.status === OrderStatus.OPEN || order.value.status === OrderStatus.DELIVERED
-})
-
 const getStatusColor = (status: OrderItemStatus) => {
   const option = statusOptions.find((opt) => opt.value === status)
   return option ? option.color : '#6b7280'
@@ -87,7 +79,6 @@ const getStatusLabel = (status: OrderItemStatus) => {
   return option ? option.label : 'Desconocido'
 }
 
-// Usar watch para cargar la orden cuando cambie el orderId o show
 watch(
   () => [props.show, props.orderId],
   async ([show, orderId]) => {
@@ -105,7 +96,23 @@ async function loadOrder() {
 
   loading.value = true
   try {
-    order.value = await orderStore.fetchOrderById(props.orderId)
+    const data = await orderStore.fetchOrderById(props.orderId)
+
+    order.value = {
+      id: data.id,
+      orderNumber: data.orderNumber,
+      status: data.status as OrderStatus,
+      subtotal: data.subtotal,
+      tax: data.tax,
+      total: data.total,
+      notes: data.notes ?? undefined,
+      closedAt: data.closedAt ?? null,
+      table: data.table ?? null,
+      user: data.user ?? { id: '', name: 'Desconocido' },
+      items: data.orderItems ?? [],
+      createdAt: data.createdAt,
+      updatedAt: data.updatedAt,
+    }
   } catch (error) {
     console.error('Error al cargar orden:', error)
     alert('Error al cargar los detalles de la orden')
@@ -122,12 +129,6 @@ function handleClose() {
 function handleUpdateItemStatus(itemId: string, status: OrderItemStatus) {
   emit('updateItemStatus', itemId, status)
 }
-
-function handleCloseOrder() {
-  if (order.value) {
-    emit('closeOrder', order.value.id)
-  }
-}
 </script>
 
 <template>
@@ -138,8 +139,11 @@ function handleCloseOrder() {
           <div>
             <h2 v-if="order">Orden #{{ order.orderNumber }}</h2>
             <p v-if="order" class="subtitle">
-              {{ order.table ? `Mesa ${order.table.tableNumber}` : 'Para llevar' }} -
-              {{ new Date(order.createdAt).toLocaleString('es-GT') }}
+              <span class="table-highlight">
+                {{ order.table ? `Mesa ${order.table.tableNumber}` : 'Para llevar' }}
+              </span>
+              <span class="separator">•</span>
+              <span>{{ new Date(order.createdAt).toLocaleString('es-GT') }}</span>
             </p>
           </div>
           <button @click="handleClose" class="close-btn">
@@ -169,7 +173,7 @@ function handleCloseOrder() {
             <div class="order-info-section">
               <div class="info-row">
                 <span class="label">Estado:</span>
-                <span class="value" :style="{ color: orderStatusColor }">
+                <span class="value" :style="{ color: orderStatusColor, fontWeight: 600 }">
                   {{ orderStatusLabel }}
                 </span>
               </div>
@@ -187,23 +191,57 @@ function handleCloseOrder() {
             <div class="items-section">
               <h3>Items de la Orden</h3>
               <div v-if="!order.items || order.items.length === 0" class="empty-items">
+                <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
+                  />
+                </svg>
                 <p>No hay items en esta orden</p>
               </div>
               <div v-else class="items-list">
                 <div v-for="item in order.items" :key="item.id" class="item-card">
-                  <div class="item-header">
+                  <div class="item-main">
                     <div class="item-info">
                       <h4>{{ item.product.name }}</h4>
                       <div class="item-details">
-                        <span>Cantidad: {{ item.quantity }}</span>
-                        <span>Precio: ${{ parseFloat(item.unitPrice).toFixed(2) }}</span>
-                        <span>Subtotal: ${{ parseFloat(item.subtotal).toFixed(2) }}</span>
+                        <div class="detail-item">
+                          <span class="detail-label">Cantidad:</span>
+                          <span class="detail-value">{{ item.quantity }}</span>
+                        </div>
+                        <div class="detail-item">
+                          <span class="detail-label">Precio unitario:</span>
+                          <span class="detail-value"
+                            >${{ parseFloat(item.unitPrice).toFixed(2) }}</span
+                          >
+                        </div>
+                        <div class="detail-item">
+                          <span class="detail-label">Subtotal:</span>
+                          <span class="detail-value subtotal"
+                            >${{ parseFloat(item.subtotal).toFixed(2) }}</span
+                          >
+                        </div>
                       </div>
                       <div v-if="item.notes" class="item-notes">
-                        <strong>Notas:</strong> {{ item.notes }}
+                        <svg
+                          class="note-icon"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
+                          />
+                        </svg>
+                        <span>{{ item.notes }}</span>
                       </div>
                     </div>
-                    <div class="item-status">
+                    <div class="item-status-container">
                       <span
                         class="status-badge"
                         :style="{
@@ -224,7 +262,11 @@ function handleCloseOrder() {
                         :key="status.value"
                         @click="handleUpdateItemStatus(item.id, status.value)"
                         :class="['status-btn', { active: item.status === status.value }]"
-                        :style="{ borderColor: status.color }"
+                        :style="{
+                          borderColor: status.color,
+                          backgroundColor: item.status === status.value ? status.color : 'white',
+                          color: item.status === status.value ? 'white' : status.color,
+                        }"
                       >
                         {{ status.label }}
                       </button>
@@ -253,10 +295,7 @@ function handleCloseOrder() {
         </div>
 
         <div class="modal-footer">
-          <button @click="handleClose" class="btn btn-secondary">Cerrar</button>
-          <button v-if="canCloseOrder" @click="handleCloseOrder" class="btn btn-primary">
-            Marcar como Pagada
-          </button>
+          <button @click="handleClose" class="btn btn-primary">Cerrar</button>
         </div>
       </div>
     </div>
@@ -298,15 +337,32 @@ function handleCloseOrder() {
 }
 
 .modal-header h2 {
-  margin: 0 0 4px 0;
+  margin: 0 0 8px 0;
   font-size: 24px;
   color: #1f2937;
 }
 
 .subtitle {
   margin: 0;
-  font-size: 14px;
+  font-size: 15px;
   color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.table-highlight {
+  font-weight: 700;
+  font-size: 16px;
+  color: #1f2937;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.separator {
+  color: #d1d5db;
 }
 
 .close-btn {
@@ -411,71 +467,134 @@ function handleCloseOrder() {
   text-align: center;
   padding: 40px 20px;
   color: #9ca3af;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.empty-icon {
+  width: 48px;
+  height: 48px;
+  color: #d1d5db;
 }
 
 .items-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
 .item-card {
   background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.2s;
 }
 
-.item-header {
+.item-card:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+}
+
+.item-main {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
+}
+
+.item-info {
+  flex: 1;
 }
 
 .item-info h4 {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
   color: #1f2937;
-  margin: 0 0 8px 0;
+  margin: 0 0 12px 0;
 }
 
 .item-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.detail-item {
   display: flex;
-  gap: 16px;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-label {
+  font-size: 12px;
+  font-weight: 600;
   color: #6b7280;
-  font-size: 14px;
-  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detail-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.detail-value.subtotal {
+  color: #10b981;
+  font-size: 16px;
 }
 
 .item-notes {
-  font-size: 13px;
+  display: flex;
+  align-items: start;
+  gap: 8px;
+  font-size: 14px;
   color: #4b5563;
-  background: #f3f4f6;
-  padding: 8px;
-  border-radius: 4px;
-  margin-top: 8px;
+  background: #fef3c7;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border-left: 3px solid #f59e0b;
+}
+
+.note-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: #f59e0b;
+  margin-top: 2px;
+}
+
+.item-status-container {
+  margin-left: 16px;
 }
 
 .status-badge {
-  padding: 4px 12px;
+  padding: 6px 14px;
   border-radius: 20px;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
 }
 
 .item-actions {
-  border-top: 1px solid #e5e7eb;
-  padding-top: 12px;
+  border-top: 2px solid #e5e7eb;
+  padding-top: 16px;
 }
 
 .item-actions label {
   display: block;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   color: #374151;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .status-buttons {
@@ -485,31 +604,31 @@ function handleCloseOrder() {
 }
 
 .status-btn {
-  padding: 6px 12px;
+  padding: 8px 16px;
   background: white;
   border: 2px solid #e5e7eb;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 500;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .status-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 .status-btn.active {
-  background-color: #e5e7eb;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .totals-section {
-  background: #f9fafb;
-  border-radius: 8px;
-  padding: 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  padding: 24px;
   margin-top: 16px;
+  color: white;
 }
 
 .total-row {
@@ -517,20 +636,22 @@ function handleCloseOrder() {
   justify-content: space-between;
   align-items: center;
   padding: 8px 0;
-  color: #4b5563;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 15px;
 }
 
 .total-row.total {
-  border-top: 2px solid #e5e7eb;
+  border-top: 2px solid rgba(255, 255, 255, 0.3);
   margin-top: 8px;
   padding-top: 12px;
-  font-weight: 600;
-  color: #1f2937;
+  font-weight: 700;
+  color: white;
+  font-size: 16px;
 }
 
 .total-amount {
-  font-size: 20px;
-  color: #10b981;
+  font-size: 28px;
+  font-weight: 700;
 }
 
 .modal-footer {
@@ -549,15 +670,6 @@ function handleCloseOrder() {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-}
-
-.btn-secondary {
-  background-color: #f3f4f6;
-  color: #374151;
-}
-
-.btn-secondary:hover {
-  background-color: #e5e7eb;
 }
 
 .btn-primary {
