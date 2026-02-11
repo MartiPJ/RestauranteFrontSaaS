@@ -63,7 +63,7 @@ export interface OrderResponse {
   tax: string
   total: string
   notes?: string | null
-  orderItems?: OrderItem[]
+  orderProducts?: OrderItem[]
   createdAt: string
   updatedAt: string
   closedAt?: string | null

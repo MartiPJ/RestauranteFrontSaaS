@@ -96,7 +96,7 @@ export const orderService = {
   // Actualizar un item de orden (cantidad, notas o estado)
   async updateOrderItem(itemId: string, data: UpdateOrderItemDTO): Promise<void> {
     try {
-      await api.patch(`/api/order-items/${itemId}`, data)
+      await api.patch(`/api/order-products/${itemId}`, data)
     } catch (error) {
       console.error('Error al actualizar item de orden:', error)
       throw error

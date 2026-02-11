@@ -109,7 +109,7 @@ async function loadOrder() {
       closedAt: data.closedAt ?? null,
       table: data.table ?? null,
       user: data.user ?? { id: '', name: 'Desconocido' },
-      items: data.orderItems ?? [],
+      items: data.orderProducts ?? [],
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
     }
