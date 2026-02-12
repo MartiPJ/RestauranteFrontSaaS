@@ -17,17 +17,25 @@ export enum OrderItemStatus {
   CANCELLED = 'cancelled',
 }
 
-export interface OrderItem {
+export interface OrderProduct {
   id: string
   quantity: number
   unitPrice: string
   subtotal: string
-  notes?: string
+  notes?: string | null
   status: OrderItemStatus
+  orderId: string
+  productId: string
   product: {
     id: string
     name: string
+    description?: string
     imageUrl?: string
+    price: string
+    isAvailable: boolean
+    categoryId: string
+    createdAt: string
+    updatedAt: string
   }
   createdAt: string
   updatedAt: string
@@ -40,19 +48,31 @@ export interface Order {
   subtotal: string
   tax: string
   total: string
-  notes?: string
+  notes?: string | null
   closedAt?: string | null
   table?: {
     id: string
     tableNumber: string
   } | null
+  tableId?: string | null
   user: {
     id: string
     name: string
+    email?: string
+    roles?: string[]
+    tokenVersion?: number
+    isActive?: boolean
+    createdAt?: string
+    updatedAt?: string
   }
-  items?: OrderItem[]
+  orderProducts?: OrderProduct[] // Importante: es orderProducts, no items
   createdAt: string
   updatedAt: string
+}
+
+// Para compatibilidad, podemos crear un getter
+export interface OrderWithItems extends Order {
+  items: OrderProduct[] // Computed property para fácil acceso
 }
 
 export interface OrderResponse {
@@ -63,7 +83,7 @@ export interface OrderResponse {
   tax: string
   total: string
   notes?: string | null
-  orderProducts?: OrderItem[]
+  orderProducts?: OrderProduct[]
   createdAt: string
   updatedAt: string
   closedAt?: string | null

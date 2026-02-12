@@ -1,71 +1,129 @@
 <!-- src/components/KitchenOrderCard.vue -->
 <template>
-  <div class="order-card" :class="`status-${order.status}`">
+  <div class="order-card" :class="statusClass">
+    <!-- HEADER: Información principal de la orden -->
     <div class="order-header">
-      <div class="order-info">
-        <h3 class="order-number">{{ order.orderNumber }}</h3>
-        <p class="order-table" v-if="order.table">Mesa: {{ order.table.tableNumber }}</p>
-        <p class="order-table" v-else>Para llevar</p>
-        <p class="order-time">{{ formatTime(order.createdAt) }}</p>
+      <div class="order-header-left">
+        <div class="order-badges">
+          <span class="badge badge-order-number">#{{ shortOrderNumber }}</span>
+          <span class="badge" :class="`badge-${order.status}`">
+            {{ statusLabel }}
+          </span>
+        </div>
+
+        <div class="order-meta">
+          <div class="meta-item">
+            <span class="meta-icon">🕒</span>
+            <span class="meta-text">{{ timeAgo }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-icon">👤</span>
+            <span class="meta-text">{{ order.user?.name || 'Cliente' }}</span>
+          </div>
+          <div class="meta-item">
+            <span class="meta-icon">📍</span>
+            <span class="meta-text mesa-info">
+              {{ order.table?.tableNumber || 'Para llevar' }}
+            </span>
+          </div>
+        </div>
       </div>
 
-      <div class="order-actions">
-        <button
-          v-for="action in availableActions"
-          :key="action.status"
-          @click="updateStatus(action.status)"
-          class="action-btn"
-          :class="`btn-${action.status}`"
-          :title="action.label"
-        >
-          {{ action.icon }}
-        </button>
+      <div class="order-header-right">
+        <div class="order-timer" v-if="isActive">
+          <span class="timer-icon">⏱️</span>
+          <span class="timer-time">{{ elapsedTime }}</span>
+        </div>
+
+        <div class="order-actions">
+          <button
+            v-for="action in availableActions"
+            :key="action.status"
+            @click="emit('updateOrderStatus', order.id, action.status)"
+            class="btn btn-action"
+            :class="`btn-${action.status}`"
+          >
+            <span class="btn-icon">{{ action.icon }}</span>
+            <span class="btn-text">{{ action.label }}</span>
+          </button>
+        </div>
       </div>
     </div>
 
-    <div class="order-items">
-      <div
-        v-for="item in orderItems"
-        :key="item.id"
-        class="order-item"
-        :class="`item-${item.status}`"
-      >
-        <div class="item-image" v-if="item.product.imageUrl">
-          <img :src="item.product.imageUrl" :alt="item.product.name" />
-        </div>
-        <div class="item-details">
-          <div class="item-header">
-            <span class="item-quantity">{{ item.quantity }}x</span>
-            <span class="item-name">{{ item.product.name }}</span>
-          </div>
-          <p v-if="item.notes" class="item-notes">📝 {{ item.notes }}</p>
+    <!-- PRODUCTOS: Diseño tipo ticket, ultra legible -->
+    <div class="order-products">
+      <div class="products-header">
+        <span class="products-title">🍽️ Productos</span>
+        <span class="products-count">{{ orderProducts.length }} items</span>
+      </div>
 
-          <div class="item-status-buttons">
-            <button
-              v-for="status in itemStatuses"
-              :key="status.value"
-              @click="updateItemStatus(item.id, status.value)"
-              class="status-btn"
-              :class="{ active: item.status === status.value }"
-              :disabled="item.status === status.value"
-            >
-              {{ status.icon }} {{ status.label }}
-            </button>
+      <div class="products-list">
+        <div
+          v-for="product in orderProducts"
+          :key="product.id"
+          class="product-item"
+          :class="`product-${product.status}`"
+        >
+          <!-- Estado visual del producto -->
+          <div class="product-status-indicator">
+            <span class="status-dot" :class="`dot-${product.status}`"></span>
+          </div>
+
+          <!-- Cantidad - GRANDE y visible -->
+          <div class="product-quantity">
+            <span class="quantity-number">{{ product.quantity }}</span>
+            <span class="quantity-label">x</span>
+          </div>
+
+          <!-- Información del producto -->
+          <div class="product-info">
+            <div class="product-name-row">
+              <span class="product-name">{{ product.product.name }}</span>
+              <span class="product-status-badge" :class="`badge-${product.status}`">
+                {{ productStatusLabel[product.status] }}
+              </span>
+            </div>
+
+            <!-- Notas - Muy visibles -->
+            <div v-if="product.notes" class="product-notes">
+              <span class="notes-icon">📝</span>
+              <span class="notes-text">{{ product.notes }}</span>
+            </div>
+
+            <!-- Botones de estado - Grandes, táctiles -->
+            <div class="product-actions">
+              <button
+                v-for="status in productStatuses"
+                :key="status.value"
+                @click="emit('updateItemStatus', product.id, status.value)"
+                class="btn-status"
+                :class="[`btn-status-${status.value}`, { active: product.status === status.value }]"
+                :disabled="product.status === status.value"
+              >
+                <span class="status-icon">{{ status.icon }}</span>
+                <span class="status-label">{{ status.label }}</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Tiempo total si es necesario -->
+    <div class="order-footer" v-if="order.notes">
+      <span class="footer-icon">📌</span>
+      <span class="footer-text">{{ order.notes }}</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { Order, OrderItem } from '@/types/order'
+import type { Order, OrderProduct } from '@/types/order'
 import { OrderStatus, OrderItemStatus } from '@/types/order'
 
 interface Props {
-  order: Order
-  orderItems: OrderItem[]
+  order: Order & { orderProducts?: OrderProduct[] }
 }
 
 interface Emits {
@@ -76,314 +134,678 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
-const itemStatuses = [
+// Acceso seguro a los productos
+const orderProducts = computed(() => props.order.orderProducts || [])
+
+// Número de orden corto para fácil identificación
+const shortOrderNumber = computed(() => {
+  const parts = props.order.orderNumber.split('-')
+  return parts[parts.length - 1]
+})
+
+// Estado de la orden en español
+const statusLabel = computed(() => {
+  const labels: Record<string, string> = {
+    [OrderStatus.OPEN]: 'Nueva',
+    [OrderStatus.IN_PROGRESS]: 'En proceso',
+    [OrderStatus.READY]: 'Lista',
+    [OrderStatus.DELIVERED]: 'Entregada',
+    [OrderStatus.PAID]: 'Pagada',
+    [OrderStatus.CANCELLED]: 'Cancelada',
+  }
+  return labels[props.order.status] || props.order.status
+})
+
+// Clase CSS para el borde de la tarjeta
+const statusClass = computed(() => `status-${props.order.status}`)
+
+// Si la orden está activa (para timer)
+const isActive = computed(() =>
+  [OrderStatus.OPEN, OrderStatus.IN_PROGRESS].includes(props.order.status),
+)
+
+// Tiempo transcurrido formateado
+const elapsedTime = computed(() => {
+  const created = new Date(props.order.createdAt)
+  const now = new Date()
+  const diff = now.getTime() - created.getTime()
+
+  const hours = Math.floor(diff / 3600000)
+  const minutes = Math.floor((diff % 3600000) / 60000)
+
+  if (hours > 0) return `${hours}h ${minutes}m`
+  return `${minutes}m`
+})
+
+// Tiempo relativo (hace X minutos)
+const timeAgo = computed(() => {
+  const created = new Date(props.order.createdAt)
+  const now = new Date()
+  const diff = Math.floor((now.getTime() - created.getTime()) / 60000)
+
+  if (diff < 1) return 'Ahora'
+  if (diff < 60) return `Hace ${diff} min`
+
+  const hours = created.getHours().toString().padStart(2, '0')
+  const minutes = created.getMinutes().toString().padStart(2, '0')
+  return `${hours}:${minutes}`
+})
+
+// Estados disponibles para productos
+const productStatuses = [
   { value: OrderItemStatus.PENDING, label: 'Pendiente', icon: '⏳' },
-  { value: OrderItemStatus.PREPARING, label: 'Preparando', icon: '🔥' },
+  { value: OrderItemStatus.PREPARING, label: 'Preparar', icon: '🔥' },
   { value: OrderItemStatus.SERVED, label: 'Servido', icon: '✅' },
 ]
 
+// Labels para mostrar el estado del producto
+const productStatusLabel = {
+  [OrderItemStatus.PENDING]: 'Pendiente',
+  [OrderItemStatus.PREPARING]: 'En cocina',
+  [OrderItemStatus.SERVED]: 'Servido',
+  [OrderItemStatus.CANCELLED]: 'Cancelado',
+}
+
+// Acciones disponibles según el estado de la orden
 const availableActions = computed(() => {
   const actions = []
 
   switch (props.order.status) {
     case OrderStatus.OPEN:
-      actions.push({ status: OrderStatus.IN_PROGRESS, label: 'Iniciar', icon: '▶️' })
-      actions.push({ status: OrderStatus.CANCELLED, label: 'Cancelar', icon: '❌' })
+      actions.push({
+        status: OrderStatus.IN_PROGRESS,
+        label: 'Iniciar',
+        icon: '🔥',
+        primary: true,
+      })
+      actions.push({
+        status: OrderStatus.CANCELLED,
+        label: 'Cancelar',
+        icon: '❌',
+        danger: true,
+      })
       break
     case OrderStatus.IN_PROGRESS:
-      actions.push({ status: OrderStatus.READY, label: 'Lista', icon: '✅' })
-      actions.push({ status: OrderStatus.CANCELLED, label: 'Cancelar', icon: '❌' })
+      actions.push({
+        status: OrderStatus.READY,
+        label: 'Lista',
+        icon: '✅',
+        primary: true,
+      })
+      actions.push({
+        status: OrderStatus.CANCELLED,
+        label: 'Cancelar',
+        icon: '❌',
+        danger: true,
+      })
       break
     case OrderStatus.READY:
-      actions.push({ status: OrderStatus.DELIVERED, label: 'Entregada', icon: '🚀' })
+      actions.push({
+        status: OrderStatus.DELIVERED,
+        label: 'Entregar',
+        icon: '🚀',
+        primary: true,
+      })
       break
   }
 
   return actions
 })
-
-const updateStatus = (status: OrderStatus) => {
-  emit('updateOrderStatus', props.order.id, status)
-}
-
-const updateItemStatus = (itemId: string, status: OrderItemStatus) => {
-  emit('updateItemStatus', itemId, status)
-}
-
-const formatTime = (dateString: string): string => {
-  const date = new Date(dateString)
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffMins = Math.floor(diffMs / 60000)
-
-  if (diffMins < 1) return 'Ahora'
-  if (diffMins < 60) return `${diffMins} min`
-
-  const hours = date.getHours().toString().padStart(2, '0')
-  const minutes = date.getMinutes().toString().padStart(2, '0')
-  return `${hours}:${minutes}`
-}
 </script>
 
 <style scoped>
+/* ===== VARIABLES ===== */
+:root {
+  --color-primary: #2563eb;
+  --color-success: #16a34a;
+  --color-warning: #ca8a04;
+  --color-danger: #dc2626;
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-600: #4b5563;
+  --color-gray-900: #111827;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --radius-lg: 16px;
+  --radius-md: 12px;
+  --radius-sm: 8px;
+}
+
+/* ===== TARJETA PRINCIPAL ===== */
 .order-card {
   background: white;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border-left: 5px solid #ddd;
-  transition: all 0.3s ease;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  transition: all 0.2s ease;
+  border-left: 6px solid transparent;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .order-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
 }
 
+/* Estados de la orden (colores en borde izquierdo) */
 .status-open {
-  border-left-color: #3b82f6;
-  background: linear-gradient(to right, #eff6ff 0%, white 50%);
+  border-left-color: var(--color-primary);
+  background: #eff6ff;
 }
-
 .status-in_progress {
-  border-left-color: #f59e0b;
-  background: linear-gradient(to right, #fffbeb 0%, white 50%);
+  border-left-color: var(--color-warning);
+  background: #fef9e7;
 }
-
 .status-ready {
-  border-left-color: #10b981;
-  background: linear-gradient(to right, #ecfdf5 0%, white 50%);
+  border-left-color: var(--color-success);
+  background: #f0fdf4;
+}
+.status-delivered {
+  border-left-color: #8b5cf6;
+  background: #f5f3ff;
+  opacity: 0.9;
+}
+.status-cancelled {
+  border-left-color: var(--color-gray-600);
+  background: #f3f4f6;
+  opacity: 0.8;
 }
 
+/* ===== HEADER ===== */
 .order-header {
+  padding: 20px;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 16px;
-  padding-bottom: 16px;
-  border-bottom: 2px solid #f3f4f6;
+  border-bottom: 2px solid #e5e7eb;
+  background: white;
 }
 
-.order-info {
+.order-header-left {
   flex: 1;
 }
 
-.order-number {
-  font-size: 24px;
-  font-weight: 700;
-  margin: 0 0 8px 0;
-  color: #111827;
+.order-badges {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
 }
 
-.order-table {
+.badge {
+  padding: 6px 16px;
+  border-radius: 9999px;
   font-size: 16px;
-  font-weight: 600;
-  margin: 4px 0;
-  color: #4b5563;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  letter-spacing: 0.5px;
 }
 
-.order-time {
-  font-size: 14px;
-  color: #6b7280;
-  margin: 4px 0 0 0;
+.badge-order-number {
+  background: var(--color-gray-900);
+  color: white;
+  font-size: 18px;
+  padding: 6px 20px;
+}
+
+.badge-open {
+  background: var(--color-primary);
+  color: white;
+}
+.badge-in_progress {
+  background: var(--color-warning);
+  color: white;
+}
+.badge-ready {
+  background: var(--color-success);
+  color: white;
+}
+.badge-delivered {
+  background: #8b5cf6;
+  color: white;
+}
+.badge-cancelled {
+  background: var(--color-gray-600);
+  color: white;
+}
+
+.order-meta {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-gray-600);
+  font-size: 15px;
   font-weight: 500;
 }
 
+.meta-icon {
+  font-size: 18px;
+}
+
+.meta-text {
+  color: var(--color-gray-900);
+}
+
+.mesa-info {
+  font-weight: 700;
+  background: #e5e7eb;
+  padding: 4px 12px;
+  border-radius: 9999px;
+  color: var(--color-gray-900);
+}
+
+.order-header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.order-timer {
+  background: #1e293b;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.timer-icon {
+  font-size: 18px;
+}
+
+.timer-time {
+  font-family: monospace;
+}
+
+/* ===== ACCIONES DE LA ORDEN ===== */
 .order-actions {
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  gap: 10px;
 }
 
-.action-btn {
+.btn-action {
   padding: 12px 20px;
-  font-size: 24px;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  min-width: 60px;
+  color: white;
+  box-shadow: var(--shadow-sm);
 }
 
-.action-btn:hover {
+.btn-action:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-md);
 }
 
-.action-btn:active {
+.btn-action:active {
   transform: translateY(0);
 }
 
+.btn-icon {
+  font-size: 20px;
+}
+
 .btn-in_progress {
-  background: #3b82f6;
+  background: var(--color-primary);
 }
-
 .btn-ready {
-  background: #10b981;
+  background: var(--color-success);
 }
-
 .btn-delivered {
   background: #8b5cf6;
 }
-
 .btn-cancelled {
-  background: #ef4444;
+  background: var(--color-danger);
 }
 
-.order-items {
+/* ===== PRODUCTOS ===== */
+.order-products {
+  padding: 20px;
+  background: white;
+  flex: 1;
+}
+
+.products-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.products-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--color-gray-900);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.products-count {
+  background: var(--color-gray-100);
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-gray-600);
+}
+
+.products-list {
   display: flex;
   flex-direction: column;
   gap: 16px;
 }
 
-.order-item {
+/* ===== ITEM DE PRODUCTO ===== */
+.product-item {
   display: flex;
-  gap: 12px;
-  padding: 12px;
-  background: #f9fafb;
-  border-radius: 8px;
+  gap: 16px;
+  padding: 16px;
+  background: var(--color-gray-50);
+  border-radius: var(--radius-md);
   border: 2px solid transparent;
   transition: all 0.2s ease;
+  position: relative;
 }
 
-.item-pending {
-  border-color: #e5e7eb;
-  background: #ffffff;
+/* Estados del producto */
+.product-pending {
+  border-color: #9ca3af;
+  background: white;
+}
+.product-preparing {
+  border-color: var(--color-warning);
+  background: #fef3c7;
+}
+.product-served {
+  border-color: var(--color-success);
+  background: #d1fae5;
+  opacity: 0.9;
 }
 
-.item-preparing {
-  border-color: #fbbf24;
-  background: #fffbeb;
+.product-status-indicator {
+  display: flex;
+  align-items: flex-start;
+  padding-top: 4px;
 }
 
-.item-served {
-  border-color: #10b981;
-  background: #ecfdf5;
-  opacity: 0.7;
+.status-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: block;
 }
 
-.item-image {
-  width: 80px;
-  height: 80px;
-  border-radius: 8px;
-  overflow: hidden;
-  flex-shrink: 0;
+.dot-pending {
+  background: #9ca3af;
+}
+.dot-preparing {
+  background: var(--color-warning);
+  animation: pulse 1.5s infinite;
+}
+.dot-served {
+  background: var(--color-success);
 }
 
-.item-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
-.item-details {
+/* ===== CANTIDAD - MUY GRANDE ===== */
+.product-quantity {
+  display: flex;
+  align-items: baseline;
+  background: var(--color-gray-900);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  min-width: 70px;
+  justify-content: center;
+}
+
+.quantity-number {
+  font-size: 28px;
+  font-weight: 900;
+  color: white;
+  line-height: 1;
+}
+
+.quantity-label {
+  font-size: 20px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.7);
+  margin-left: 2px;
+}
+
+/* ===== INFORMACIÓN DEL PRODUCTO ===== */
+.product-info {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
-.item-header {
+.product-name-row {
   display: flex;
-  gap: 8px;
+  justify-content: space-between;
   align-items: center;
-}
-
-.item-quantity {
-  background: #3b82f6;
-  color: white;
-  padding: 4px 12px;
-  border-radius: 6px;
-  font-weight: 700;
-  font-size: 18px;
-  min-width: 45px;
-  text-align: center;
-}
-
-.item-name {
-  font-size: 18px;
-  font-weight: 600;
-  color: #111827;
-}
-
-.item-notes {
-  font-size: 14px;
-  color: #6b7280;
-  background: white;
-  padding: 8px;
-  border-radius: 6px;
-  margin: 0;
-  border-left: 3px solid #f59e0b;
-}
-
-.item-status-buttons {
-  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
-  margin-top: 4px;
 }
 
-.status-btn {
+.product-name {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-gray-900);
+}
+
+.product-status-badge {
+  padding: 4px 12px;
+  border-radius: 9999px;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badge-pending {
+  background: #e5e7eb;
+  color: var(--color-gray-600);
+}
+.badge-preparing {
+  background: var(--color-warning);
+  color: white;
+}
+.badge-served {
+  background: var(--color-success);
+  color: white;
+}
+
+/* ===== NOTAS ===== */
+.product-notes {
+  background: #fff3cd;
+  border-left: 6px solid #ffc107;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 16px;
+}
+
+.notes-icon {
+  font-size: 20px;
+}
+
+.notes-text {
+  color: #856404;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/* ===== BOTONES DE ESTADO DEL PRODUCTO ===== */
+.product-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.btn-status {
   flex: 1;
-  padding: 10px 16px;
+  min-width: 110px;
+  padding: 14px 12px;
   border: 2px solid #e5e7eb;
   background: white;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
   transition: all 0.2s ease;
-  color: #6b7280;
+  color: var(--color-gray-600);
 }
 
-.status-btn:hover:not(:disabled) {
-  background: #f3f4f6;
-  border-color: #d1d5db;
+.status-icon {
+  font-size: 20px;
+}
+
+.btn-status:hover:not(:disabled) {
+  background: var(--color-gray-100);
+  border-color: #9ca3af;
   transform: translateY(-1px);
 }
 
-.status-btn.active {
-  border-color: #3b82f6;
-  background: #3b82f6;
+/* Estados activos */
+.btn-status-pending.active {
+  background: #6b7280;
+  border-color: #6b7280;
   color: white;
+}
+
+.btn-status-preparing.active {
+  background: var(--color-warning);
+  border-color: var(--color-warning);
+  color: white;
+}
+
+.btn-status-served.active {
+  background: var(--color-success);
+  border-color: var(--color-success);
+  color: white;
+}
+
+.btn-status:disabled {
+  opacity: 0.8;
   cursor: default;
+  transform: none;
 }
 
-.status-btn:disabled {
-  cursor: default;
+/* ===== FOOTER ===== */
+.order-footer {
+  padding: 16px 20px;
+  background: #f3f4f6;
+  border-top: 2px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 15px;
+  color: var(--color-gray-600);
 }
 
-.status-btn:active:not(:disabled) {
-  transform: translateY(0);
+.footer-icon {
+  font-size: 18px;
 }
 
+.footer-text {
+  font-weight: 500;
+}
+
+/* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
-  .order-card {
-    padding: 16px;
+  .order-header {
+    flex-direction: column;
+    gap: 16px;
   }
 
-  .order-number {
-    font-size: 20px;
+  .order-header-right {
+    width: 100%;
+    align-items: flex-start;
   }
 
-  .action-btn {
-    padding: 10px 16px;
-    font-size: 20px;
-    min-width: 50px;
+  .order-actions {
+    width: 100%;
   }
 
-  .item-image {
-    width: 60px;
-    height: 60px;
+  .btn-action {
+    flex: 1;
+    justify-content: center;
   }
 
-  .item-quantity {
-    font-size: 16px;
-    padding: 4px 10px;
+  .product-item {
+    flex-direction: column;
   }
 
-  .item-name {
-    font-size: 16px;
+  .product-quantity {
+    align-self: flex-start;
+    min-width: 60px;
+  }
+
+  .product-actions {
+    flex-direction: column;
+  }
+
+  .btn-status {
+    width: 100%;
+  }
+}
+
+/* Optimizaciones para pantallas grandes */
+@media (min-width: 1400px) {
+  .product-item {
+    padding: 20px;
+  }
+
+  .product-name {
+    font-size: 22px;
+  }
+
+  .quantity-number {
+    font-size: 32px;
+  }
+
+  .btn-status {
+    padding: 16px 20px;
+    font-size: 18px;
   }
 }
 </style>

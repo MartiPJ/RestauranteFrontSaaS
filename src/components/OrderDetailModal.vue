@@ -2,7 +2,7 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { useOrderStore } from '@/stores/orderStore'
-import type { Order, OrderItem } from '@/types/order'
+import type { Order, OrderProduct } from '@/types/order'
 import { OrderItemStatus, OrderStatus } from '@/types/order'
 
 const orderStore = useOrderStore()
@@ -109,7 +109,7 @@ async function loadOrder() {
       closedAt: data.closedAt ?? null,
       table: data.table ?? null,
       user: data.user ?? { id: '', name: 'Desconocido' },
-      items: data.orderProducts ?? [],
+      orderProducts: data.orderProducts ?? [],
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
     }
@@ -190,7 +190,10 @@ function handleUpdateItemStatus(itemId: string, status: OrderItemStatus) {
             <!-- Items de la orden -->
             <div class="items-section">
               <h3>Items de la Orden</h3>
-              <div v-if="!order.items || order.items.length === 0" class="empty-items">
+              <div
+                v-if="!order.orderProducts || order.orderProducts.length === 0"
+                class="empty-items"
+              >
                 <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     stroke-linecap="round"
@@ -202,7 +205,7 @@ function handleUpdateItemStatus(itemId: string, status: OrderItemStatus) {
                 <p>No hay items en esta orden</p>
               </div>
               <div v-else class="items-list">
-                <div v-for="item in order.items" :key="item.id" class="item-card">
+                <div v-for="item in order.orderProducts" :key="item.id" class="item-card">
                   <div class="item-main">
                     <div class="item-info">
                       <h4>{{ item.product.name }}</h4>
