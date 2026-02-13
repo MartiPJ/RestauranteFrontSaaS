@@ -17,6 +17,9 @@ const isEdit = ref(false)
 const selectedTable = ref<Table | null>(null)
 const filterStatus = ref<string>('all')
 const searchQuery = ref('')
+const showToast = ref(false)
+const toastMessage = ref('')
+const toastType = ref<'success' | 'error'>('success')
 
 onMounted(async () => {
   await tableStore.fetchTables()
@@ -68,6 +71,16 @@ const handleSubmit = async (data: CreateTableDTO) => {
   }
 }
 
+const triggerToast = (message: string, type: 'success' | 'error' = 'success') => {
+  toastMessage.value = message
+  toastType.value = type
+  showToast.value = true
+
+  setTimeout(() => {
+    showToast.value = false
+  }, 3000)
+}
+
 const handleCreateOrder = async (
   items: { productId: string; quantity: number; notes?: string }[],
   orderNotes?: string,
@@ -97,7 +110,7 @@ const handleCreateOrder = async (
         await tableStore.updateTable(selectedTable.value.id, { status: TableStatus.OCCUPIED })
       }
 
-      alert('¡Items agregados a la orden existente!')
+      triggerToast('¡Items agregados a la orden existente!', 'success')
     } else {
       // Crear nueva orden
       await orderStore.createOrder({
@@ -111,7 +124,7 @@ const handleCreateOrder = async (
         await tableStore.updateTable(selectedTable.value.id, { status: TableStatus.OCCUPIED })
       }
 
-      alert('¡Orden creada exitosamente!')
+      triggerToast('¡Orden creada exitosamente!', 'success')
     }
 
     showMenuModal.value = false
@@ -120,7 +133,7 @@ const handleCreateOrder = async (
     // Refrescar datos
     await Promise.all([orderStore.fetchOrders(), tableStore.fetchTables()])
   } catch (error: any) {
-    alert(error.message || 'Error al procesar la orden')
+    triggerToast(error.message || 'Error al procesar la orden')
   }
 }
 
@@ -160,6 +173,12 @@ const handleStatusChange = async (id: string, status: TableStatus) => {
           Nueva Mesa
         </button>
       </div>
+
+      <Transition name="toast">
+        <div v-if="showToast" :class="['toast', toastType]">
+          {{ toastMessage }}
+        </div>
+      </Transition>
 
       <div class="stats-grid">
         <div class="stat-card">
@@ -550,5 +569,37 @@ const handleStatusChange = async (id: string, status: TableStatus) => {
   .tables-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Toast styles */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  padding: 14px 20px;
+  border-radius: 10px;
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  z-index: 2000;
+}
+
+.toast.success {
+  background-color: #10b981;
+}
+
+.toast.error {
+  background-color: #ef4444;
+}
+
+.toast-enter-active,
+.toast-leave-active {
+  transition: all 0.3s ease;
+}
+
+.toast-enter-from,
+.toast-leave-to {
+  opacity: 0;
+  transform: translateY(20px);
 }
 </style>
