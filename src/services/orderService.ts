@@ -106,7 +106,7 @@ export const orderService = {
   // Eliminar un item de orden
   async deleteOrderItem(itemId: string): Promise<void> {
     try {
-      await api.delete(`/api/order-items/${itemId}`)
+      await api.delete(`/api/order-products/${itemId}`)
     } catch (error) {
       console.error('Error al eliminar item de orden:', error)
       throw error

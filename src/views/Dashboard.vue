@@ -63,6 +63,12 @@ const sections: DashboardSection[] = [
     icon: '🍴',
     route: '/Kitchen',
   },
+  {
+    id: 'Invoice',
+    label: 'Facturación',
+    icon: '💰',
+    route: '/Invoices',
+  },
 ]
 
 const navigateTo = (route: string) => {
