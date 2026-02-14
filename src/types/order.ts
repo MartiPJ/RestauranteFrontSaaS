@@ -1,6 +1,5 @@
 // src/types/order.ts
 
-// src/types/order.ts
 export enum OrderStatus {
   OPEN = 'open',
   IN_PROGRESS = 'in_progress',
@@ -65,7 +64,7 @@ export interface Order {
     createdAt?: string
     updatedAt?: string
   }
-  orderProducts?: OrderProduct[] // Importante: es orderProducts, no items
+  orderProducts?: OrderProduct[]
   createdAt: string
   updatedAt: string
 }

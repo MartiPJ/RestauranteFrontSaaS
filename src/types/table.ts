@@ -8,7 +8,7 @@ export enum TableStatus {
 
 export interface Table {
   id: string
-  tableNumber: string // ← CAMBIA: tu backend usa tableNumber, no name
+  tableNumber: string
   capacity: number
   status: TableStatus
   isActive?: boolean
@@ -17,13 +17,13 @@ export interface Table {
 }
 
 export interface CreateTableDTO {
-  tableNumber: string // ← CAMBIA
+  tableNumber: string
   capacity: number
   status?: TableStatus
 }
 
 export interface UpdateTableDTO {
-  tableNumber?: string // ← CAMBIA
+  tableNumber?: string
   capacity?: number
   status?: TableStatus
 }

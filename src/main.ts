@@ -7,10 +7,9 @@ import router from './router'
 import 'primeicons/primeicons.css'
 
 const app = createApp(App)
-const pinia = createPinia()
+const pinia = createPinia() // Crear UNA sola instancia
 
-app.use(createPinia())
+app.use(pinia) // Usar ESA instancia
 app.use(router)
-app.use(pinia)
 
 app.mount('#app')

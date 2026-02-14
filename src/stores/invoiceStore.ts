@@ -21,7 +21,7 @@ export const useInvoiceStore = defineStore('invoice', () => {
   const currentInvoice = computed((): Invoice | null => {
     if (!selectedOrder.value) return null
 
-    // ✅ NO permitir facturar órdenes ya pagadas
+    // NO permitir facturar órdenes ya pagadas
     if (selectedOrder.value.status === OrderStatus.PAID) {
       return null
     }
@@ -59,8 +59,7 @@ export const useInvoiceStore = defineStore('invoice', () => {
         status: OrderStatus.DELIVERED, // Esto pide delivered al backend
       })
 
-      // 🔥 FILTRO ADICIONAL: Asegurar que solo órdenes DELIVERED estén en la lista
-      // Esto es un respaldo por si el backend no filtra correctamente
+      //  Asegurar que solo órdenes DELIVERED estén en la lista
       const filteredOrders = response.data.filter((order) => order.status === OrderStatus.DELIVERED)
 
       console.log(
@@ -70,8 +69,8 @@ export const useInvoiceStore = defineStore('invoice', () => {
       deliveredOrders.value = filteredOrders
       currentPage.value = response.meta.currentPage
       itemsPerPage.value = response.meta.itemsPerPage
-      totalItems.value = filteredOrders.length // ✅ Ajustar total items
-      totalPages.value = Math.ceil(filteredOrders.length / itemsPerPage.value) // ✅ Recalcular páginas
+      totalItems.value = filteredOrders.length
+      totalPages.value = Math.ceil(filteredOrders.length / itemsPerPage.value)
 
       return response
     } catch (e: any) {
@@ -83,7 +82,7 @@ export const useInvoiceStore = defineStore('invoice', () => {
   }
 
   async function fetchOrderDetails(orderId: string) {
-    // ✅ Si ya tenemos la orden seleccionada y está pagada, no recargar
+    // Si ya tenemos la orden seleccionada y está pagada, no recargar
     if (selectedOrder.value?.id === orderId && selectedOrder.value.status === OrderStatus.PAID) {
       console.log('La orden ya está pagada, no se puede facturar')
       return null
@@ -94,7 +93,7 @@ export const useInvoiceStore = defineStore('invoice', () => {
     try {
       const order = await orderService.getOrderById(orderId)
 
-      // ✅ Si la orden ya está pagada, no seleccionarla
+      // Si la orden ya está pagada, no seleccionarla
       if (order.status === OrderStatus.PAID) {
         console.warn('Intento de seleccionar orden pagada')
         selectedOrder.value = null
@@ -120,7 +119,7 @@ export const useInvoiceStore = defineStore('invoice', () => {
       // Remover la orden de la lista de entregadas
       deliveredOrders.value = deliveredOrders.value.filter((o) => o.id !== orderId)
 
-      // ✅ IMPORTANTE: Si la orden que se pagó es la seleccionada, limpiar selección
+      // Si la orden que se pagó es la seleccionada, limpiar selección
       if (selectedOrder.value?.id === orderId) {
         selectedOrder.value = null
       }
@@ -135,7 +134,7 @@ export const useInvoiceStore = defineStore('invoice', () => {
   }
 
   function selectOrder(order: Order) {
-    // ✅ No seleccionar si la orden ya está pagada
+    // No seleccionar si la orden ya está pagada
     if (order.status === OrderStatus.PAID) {
       console.warn('No se puede seleccionar una orden pagada')
       return

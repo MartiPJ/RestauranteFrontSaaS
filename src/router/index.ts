@@ -86,7 +86,6 @@ router.beforeEach(async (to, from, next) => {
     next({ name: 'login' })
   } else if (to.name === 'login' && authStore.isAuthenticated) {
     // Redirigir a dashboard si ya está autenticado
-    //next({ name: 'dashboard' })
   } else {
     next()
   }

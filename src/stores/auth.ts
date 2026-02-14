@@ -7,7 +7,7 @@ export const useAuthStore = defineStore('auth', {
   state: (): AuthState => ({
     user: null,
     token: localStorage.getItem('authToken'),
-    isAuthenticated: false,
+    isAuthenticated: false, // Esto debe actualizarse si hay token
     isLoading: false,
     error: null,
   }),
@@ -18,6 +18,16 @@ export const useAuthStore = defineStore('auth', {
   },
 
   actions: {
+    //Inicializar el estado al crear el store
+    initialize() {
+      const token = localStorage.getItem('authToken')
+      if (token) {
+        this.token = token
+        // No marcar como autenticado hasta verificar con el backend
+        this.checkAuth()
+      }
+    },
+
     async login(credentials: LoginCredentials) {
       this.isLoading = true
       this.error = null
@@ -43,9 +53,13 @@ export const useAuthStore = defineStore('auth', {
 
     async logout() {
       try {
-        // Opcional: llamar al endpoint de logout en el backend
-        await api.post('/auth/logout', {})
-      } catch (error) {
+        await api.post('/api/auth/logout', {}).catch((error) => {
+          // Ignorar errores de parseo JSON (respuesta de texto)
+          if (!(error instanceof SyntaxError)) {
+            throw error
+          }
+        })
+      } catch (error: any) {
         console.error('Error al cerrar sesión:', error)
       } finally {
         // Limpiar estado local
@@ -61,17 +75,30 @@ export const useAuthStore = defineStore('auth', {
 
       if (!token) {
         this.isAuthenticated = false
+        this.user = null
+        this.token = null
         return false
       }
 
+      // Si ya tenemos token pero no hemos verificado
+      this.token = token
+      this.isLoading = true
+
       try {
-        const response = await api.get<{ user: any }>('/auth/me')
+        const response = await api.get<{ user: any }>('/api/auth/check-status')
         this.user = response.user
         this.isAuthenticated = true
         return true
       } catch (error) {
-        this.logout()
+        console.error('Error verificando autenticación:', error)
+        // Si hay error, limpiar todo
+        this.user = null
+        this.token = null
+        this.isAuthenticated = false
+        localStorage.removeItem('authToken')
         return false
+      } finally {
+        this.isLoading = false
       }
     },
 

@@ -31,7 +31,7 @@ const onSidebarToggle = (isMinimized: boolean) => {
 
 // Computed que calcula la clase de margin-left para el contenedor principal
 const mainContentMarginClass = computed(() => {
-  if (!shouldShowNavbar.value) return 'ml-0' // sin navbar -> sin margen
-  return sidebarMinimized.value ? 'ml-20' : 'ml-64' // minimizado -> 5rem, expandido -> 16rem
+  if (!shouldShowNavbar.value) return 'ml-0'
+  return sidebarMinimized.value ? 'ml-20' : 'ml-64'
 })
 </script>
