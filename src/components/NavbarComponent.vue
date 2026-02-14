@@ -2,7 +2,7 @@
   <!-- Sidebar -->
   <aside
     :class="[
-      'fixed left-0 top-0 h-screen bg-gradient-to-b from-orange-600 to-orange-700 text-white transition-all duration-300 ease-in-out z-50 flex flex-col shadow-2xl',
+      'fixed left-0 top-0 h-screen bg-gradient-to-b from-[#609abb] to-[#5d7a90] text-white transition-all duration-300 ease-in-out z-50 flex flex-col shadow-2xl',
       open.ui.isMinimized ? 'w-20' : 'w-64',
     ]"
   >
@@ -13,9 +13,9 @@
         <div
           v-if="!open.ui.isMinimized"
           @click="navigateTo('/dashboard')"
-          class="flex-shrink-0 w-10 h-10 bg-white rounded-lg flex items-center justify-center font-bold text-orange-600 cursor-pointer hover:opacity-90 transition-opacity shadow-md"
+          class="flex-shrink-0 w-10 h-10 bg-white rounded-lg flex items-center justify-center font-bold text-[#609abb] cursor-pointer hover:opacity-90 transition-opacity shadow-md"
         >
-          🍽️
+          <img :src="logoPlato" alt="Logo" class="w-6 h-6 object-contain" />
         </div>
 
         <span
@@ -53,7 +53,7 @@
             class="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/10 transition-colors flex-nowrap whitespace-nowrap rounded-lg"
             :class="[
               open.ui.isMinimized ? 'justify-center' : '',
-              isActive('/dashboard') ? 'bg-white/20 border-r-4 border-yellow-300' : '',
+              isActive('/dashboard') ? 'bg-[#051b3a] border-r-4 border-[#e4f4fc]' : '',
             ]"
           >
             <svg
@@ -144,10 +144,10 @@
               <div v-for="item in section.items" :key="item.id" class="relative group">
                 <button @click="itemClick(item.path)" class="w-full" type="button">
                   <div
-                    class="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/10 transition-colors flex-nowrap whitespace-nowrap rounded-lg"
+                    class="w-full flex items-center gap-3 py-3 hover:bg-white/10 transition-colors flex-nowrap whitespace-nowrap rounded-lg"
                     :class="[
-                      open.ui.isMinimized ? 'justify-center' : '',
-                      isActive(item.path) ? 'bg-white/20 border-r-4 border-yellow-300' : '',
+                      open.ui.isMinimized ? 'justify-center px-4' : 'px-4 pl-10',
+                      isActive(item.path) ? 'bg-[#051b3a] border-r-4 border-[#e4f4fc]' : '',
                     ]"
                   >
                     <span v-if="item.svg" v-html="item.svg" class="flex-shrink-0"></span>
@@ -185,12 +185,12 @@
         <button
           @click="handleLogout"
           :class="[
-            'w-full flex items-center gap-3 px-4 py-3 bg-red-500 hover:bg-red-600 rounded-lg transition-colors shadow-md',
+            'w-full flex items-center gap-3 px-5 py-4 bg-red-500 hover:bg-red-600 rounded-lg transition-colors shadow-md',
             open.ui.isMinimized ? 'justify-center' : '',
           ]"
           type="button"
         >
-          <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
@@ -198,7 +198,7 @@
               d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
             />
           </svg>
-          <span v-show="!open.ui.isMinimized" class="whitespace-nowrap text-sm font-medium"
+          <span v-show="!open.ui.isMinimized" class="whitespace-nowrap text-base font-medium"
             >Cerrar Sesión</span
           >
         </button>
@@ -224,6 +224,7 @@ import { reactive, ref, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { menu } from '@/data/menu'
+import logoPlato from '@/assets/images/LogoScratchcopia2..png'
 
 /** Emitimos el estado del sidebar para que App.vue lo ajuste */
 const emit = defineEmits<{ (e: 'sidebar-toggle', isMinimized: boolean): void }>()
@@ -256,7 +257,6 @@ const open = reactive<OpenState>({
   // Secciones principales (por defecto cerradas)
   operations: false,
   catalog: false,
-  settings: false,
 })
 
 // Snapshot temporal pre-minimizado
@@ -272,13 +272,12 @@ onMounted(() => {
   if (
     route.path.startsWith('/Orders') ||
     route.path.startsWith('/Kitchen') ||
-    route.path.startsWith('/Invoices')
+    route.path.startsWith('/Invoices') ||
+    route.path.startsWith('/tables')
   ) {
     open.operations = true
   } else if (route.path.startsWith('/Categories') || route.path.startsWith('/Products')) {
     open.catalog = true
-  } else if (route.path.startsWith('/tables')) {
-    open.settings = true
   }
 
   // Actualizar la ruta actual
@@ -297,14 +296,12 @@ onMounted(() => {
 const closeAllSections = () => {
   open.operations = false
   open.catalog = false
-  open.settings = false
 }
 
 /** cerrar todos temporalmente (sin persistir) — usado al minimizar */
 const closeAllTemporary = () => {
   open.operations = false
   open.catalog = false
-  open.settings = false
 }
 
 /** Toggle sidebar (minimizar / desminimizar) */
@@ -316,7 +313,6 @@ const toggleSidebar = () => {
     prevSubs.value = {
       operations: open.operations as boolean,
       catalog: open.catalog as boolean,
-      settings: open.settings as boolean,
     }
     closeAllTemporary()
   } else {
@@ -324,7 +320,6 @@ const toggleSidebar = () => {
     if (prevSubs.value) {
       open.operations = !!prevSubs.value.operations
       open.catalog = !!prevSubs.value.catalog
-      open.settings = !!prevSubs.value.settings
       prevSubs.value = null
     }
   }
@@ -337,7 +332,7 @@ const toggleSidebar = () => {
  *  Al abrir una sección se cierran las demás.
  */
 const toggleSection = (sectionId: string) => {
-  const mainSections = ['operations', 'catalog', 'settings']
+  const mainSections = ['operations', 'catalog']
   if (!open[sectionId]) {
     mainSections.forEach((k) => (open[k] = k === sectionId))
   } else {
@@ -357,13 +352,19 @@ const navigateTo = (path?: string) => {
   })
 }
 
-/** Cuando se hace click en un item */
+/** Cuando se hace click en un item - AUTO MINIMIZAR SIDEBAR */
 const itemClick = (path?: string) => {
   if (!path) {
     alert('Funcionalidad próximamente disponible')
     return
   }
+
   navigateTo(path)
+
+  // Auto-minimizar el sidebar al seleccionar una ruta
+  if (!open.ui.isMinimized) {
+    toggleSidebar()
+  }
 }
 
 /** Watcher para actualizar la ruta actual cuando cambie */
@@ -381,13 +382,12 @@ watch(
     if (
       newPath.startsWith('/Orders') ||
       newPath.startsWith('/Kitchen') ||
-      newPath.startsWith('/Invoices')
+      newPath.startsWith('/Invoices') ||
+      newPath.startsWith('/tables')
     ) {
       open.operations = true
     } else if (newPath.startsWith('/Categories') || newPath.startsWith('/Products')) {
       open.catalog = true
-    } else if (newPath.startsWith('/tables')) {
-      open.settings = true
     }
   },
   { immediate: true },
@@ -426,5 +426,15 @@ const handleLogout = async () => {
 /* transición suave para rotación del ícono */
 button svg.transform {
   transition: transform 200ms ease;
+}
+
+/* Ocultar scrollbar en el nav */
+nav::-webkit-scrollbar {
+  display: none;
+}
+
+nav {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 </style>

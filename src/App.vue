@@ -35,24 +35,3 @@ const mainContentMarginClass = computed(() => {
   return sidebarMinimized.value ? 'ml-20' : 'ml-64' // minimizado -> 5rem, expandido -> 16rem
 })
 </script>
-
-<style>
-/* Reset básico */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-html,
-body {
-  height: 100%;
-  overflow: hidden;
-}
-
-#app {
-  height: 100vh;
-  width: 100vw;
-  overflow: hidden;
-}
-</style>
