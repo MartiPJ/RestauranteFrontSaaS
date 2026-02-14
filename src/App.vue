@@ -1,18 +1,17 @@
 <template>
-  <div id="app">
-    <!-- escuchamos el evento sidebar-toggle y actualizamos sidebarMinimized -->
+  <div id="app" class="h-screen flex overflow-hidden">
     <NavbarComponent v-if="shouldShowNavbar" @sidebar-toggle="onSidebarToggle" />
 
-    <!-- contenedor principal: aplicamos margin-left según estado del sidebar -->
-    <div :class="['pt-16 px-16 min-h-screen transition-all duration-300', mainContentMarginClass]">
+    <main :class="['flex-1 transition-all duration-300 overflow-auto', mainContentMarginClass]">
       <router-view />
-    </div>
+    </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import NavbarComponent from '@/components/NavbarComponent.vue'
 
 const route = useRoute()
 
@@ -22,10 +21,10 @@ const shouldShowNavbar = computed(() => {
   return !noNavbarRoutes.includes(route.path) && !isNotFoundRoute
 })
 
-// Estado local que almacena si el sidebar está minimizado (true) o expandido (false)
+// Estado del sidebar
 const sidebarMinimized = ref(false)
 
-// Handler del evento emitido por NavbarComponent
+// Escuchar cambios del sidebar
 const onSidebarToggle = (isMinimized: boolean) => {
   sidebarMinimized.value = isMinimized
 }
@@ -38,6 +37,22 @@ const mainContentMarginClass = computed(() => {
 </script>
 
 <style>
-/* Si quieres, puedes ajustar el breakpoint o el comportamiento en pantallas pequeñas aquí.
-   Ejemplo: para pantallas pequeñas podrías usar media queries y dejar el navbar encima (overlay). */
+/* Reset básico */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
+#app {
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
 </style>
