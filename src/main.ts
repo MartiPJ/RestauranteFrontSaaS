@@ -5,6 +5,7 @@ import './style.css'
 import App from './App.vue'
 import router from './router'
 import 'primeicons/primeicons.css'
+import { useAuthStore } from './stores/auth'
 
 const app = createApp(App)
 const pinia = createPinia()
@@ -12,4 +13,8 @@ const pinia = createPinia()
 app.use(pinia)
 app.use(router)
 
-app.mount('#app')
+// Inicializar después de que Pinia esté instalado
+const authStore = useAuthStore()
+authStore.initialize().then(() => {
+  app.mount('#app')
+})

@@ -399,6 +399,8 @@ const handleSubmit = () => {
 .capacity-input {
   flex: 1;
   text-align: center;
+  appearance: textfield;
+  -webkit-appearance: textfield;
   -moz-appearance: textfield;
 }
 

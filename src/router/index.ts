@@ -10,6 +10,7 @@ import ProductView from '@/views/ProductView.vue'
 import OrdersView from '@/views/OrdersView.vue'
 import KitchenView from '@/views/KitchenView.vue'
 import InvoiceView from '@/views/InvoiceView.vue'
+import UsersView from '@/views/UsersView.vue'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -64,6 +65,12 @@ const routes: RouteRecordRaw[] = [
     component: InvoiceView,
     meta: { requiresAuth: true },
   },
+  {
+    path: '/Users',
+    name: 'users',
+    component: UsersView,
+    meta: { requiresAuth: true, allowedRoles: ['admin', 'manager'] },
+  },
 ]
 
 const router = createRouter({
@@ -75,20 +82,34 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
   const requiresAuth = to.meta.requiresAuth
+  const allowedRoles = to.meta.allowedRoles as string[] | undefined
 
   // Verificar autenticación si hay token
   if (authStore.token && !authStore.isAuthenticated) {
     await authStore.checkAuth()
   }
 
+  // 🚨 Si requiere login y no está autenticado
   if (requiresAuth && !authStore.isAuthenticated) {
-    // Redirigir a login si la ruta requiere autenticación
-    next({ name: 'login' })
-  } else if (to.name === 'login' && authStore.isAuthenticated) {
-    // Redirigir a dashboard si ya está autenticado
-  } else {
-    next()
+    return next({ name: 'login' })
   }
+
+  // 🚨 Validar roles si existen
+  if (allowedRoles && authStore.user?.roles) {
+    const userRole = authStore.user.roles.toString().toLowerCase() // Convertir a string y minúscula
+
+    if (!allowedRoles.includes(userRole)) {
+      // Puedes redirigir al dashboard u otra vista
+      return next({ name: 'dashboard' })
+    }
+  }
+
+  // 🚨 Si ya está autenticado y quiere ir a login
+  if (to.name === 'login' && authStore.isAuthenticated) {
+    return next({ name: 'dashboard' })
+  }
+
+  next()
 })
 
 export default router

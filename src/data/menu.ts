@@ -5,6 +5,7 @@ export interface MenuItem {
   label: string
   path: string
   svg: string
+  allowedRoles?: string[]
 }
 
 export interface MenuSection {
@@ -13,12 +14,14 @@ export interface MenuSection {
   svg: string
   items?: MenuItem[]
 }
+
 import TableImage from '@/assets/images/dinner-svgrepo-com.png'
 import KitchenImage from '@/assets/images/kitchen-pack-cook-svgrepo-com.png'
 import OrdersImage from '@/assets/images/waiter-svgrepo-com.png'
 import InvoiceImage from '@/assets/images/credit-card-money-svgrepo-com.png'
 import CategoriesImage from '@/assets/images/shopping-bag-supermarket-svgrepo-com.png'
 import ProductsImage from '@/assets/images/champagne-svgrepo-com.png'
+import UsersImage from '@/assets/images/reception-english-svgrepo-com.png'
 
 export const menu: MenuSection[] = [
   {
@@ -52,6 +55,13 @@ export const menu: MenuSection[] = [
         label: 'Facturas',
         path: '/Invoices',
         svg: InvoiceImage,
+      },
+      {
+        id: 'Users',
+        label: 'Usuarios',
+        path: '/Users',
+        svg: UsersImage,
+        allowedRoles: ['admin', 'manager'],
       },
     ],
   },

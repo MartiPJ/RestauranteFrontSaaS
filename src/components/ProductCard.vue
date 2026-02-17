@@ -193,6 +193,7 @@ function handleImageError(e: Event) {
   line-height: 1.5;
   flex: 1;
   display: -webkit-box;
+  line-clamp: 3;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
@@ -312,6 +313,7 @@ function handleImageError(e: Event) {
   }
 
   .product-description {
+    line-clamp: 2;
     -webkit-line-clamp: 2;
   }
 }

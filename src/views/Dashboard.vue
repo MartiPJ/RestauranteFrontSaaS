@@ -13,10 +13,13 @@
         </div>
       </div>
 
-      <!-- Info del usuario (puedes adaptar con datos reales) -->
+      <!-- Info del usuario actual -->
       <div class="user-info">
         <span class="user-avatar">👤</span>
-        <span class="user-name">Administrador</span>
+        <span class="user-name"
+          >Bienvenido: {{ authStore.user?.name || authStore.user?.email || 'Usuario' }} - Rol:
+          {{ authStore.user?.roles?.join(', ') || 'Sin roles' }}</span
+        >
       </div>
     </header>
 
@@ -64,6 +67,8 @@
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import { computed } from 'vue'
+import { useAuthStore } from '@/stores/auth'
 import logoFromScratch from '@/assets/images/LogoScratchcopia2..png'
 import TableImage from '@/assets/images/dinner-svgrepo-com.png'
 import KitchenImage from '@/assets/images/kitchen-pack-cook-svgrepo-com.png'
@@ -71,8 +76,10 @@ import OrdersImage from '@/assets/images/waiter-svgrepo-com.png'
 import InvoiceImage from '@/assets/images/credit-card-money-svgrepo-com.png'
 import CategoriesImage from '@/assets/images/shopping-bag-supermarket-svgrepo-com.png'
 import ProductsImage from '@/assets/images/champagne-svgrepo-com.png'
+import UsersImage from '@/assets/images/reception-english-svgrepo-com.png'
 
 const router = useRouter()
+const authStore = useAuthStore()
 
 interface DashboardSection {
   id: string
@@ -81,9 +88,10 @@ interface DashboardSection {
   icon: string
   route: string
   colorClass: string
+  roles?: string[]
 }
 
-const sections: DashboardSection[] = [
+const allSections: DashboardSection[] = [
   {
     id: 'mesas',
     label: 'Mesas',
@@ -132,7 +140,31 @@ const sections: DashboardSection[] = [
     route: '/Invoices',
     colorClass: 'color-tertiary',
   },
+  {
+    id: 'Users',
+    label: 'Usuarios',
+    description: 'Gestionar usuarios del sistema',
+    icon: UsersImage,
+    route: '/Users',
+    colorClass: 'color-tertiary',
+    roles: ['admin', 'manager'],
+  },
 ]
+
+const sections = computed(() => {
+  // Usar el getter userRoles del store
+  const userRoles = authStore.userRoles || []
+
+  return allSections.filter((section) => {
+    // Si la sección no tiene restricción de roles, mostrar
+    if (!section.roles || section.roles.length === 0) return true
+
+    // Si tiene restricción, verificar si el usuario tiene algún rol permitido
+    return section.roles.some((role) =>
+      userRoles.some((userRole) => userRole.toLowerCase() === role.toLowerCase()),
+    )
+  })
+})
 
 const navigateTo = (route: string) => {
   router.push(route)

@@ -3,7 +3,9 @@ export interface User {
   id: string
   email: string
   name: string
+  roles?: string[]
   role?: string
+  tokenVersion?: number // Si tu backend incluye esto
 }
 
 export interface LoginCredentials {
@@ -11,9 +13,14 @@ export interface LoginCredentials {
   password: string
 }
 
+// La respuesta del backend es directamente el usuario + token
 export interface AuthResponse {
-  user: User
+  id: string
+  email: string
+  name?: string
+  roles: string[] | string
   token: string
+  tokenVersion?: number
 }
 
 export interface AuthState {

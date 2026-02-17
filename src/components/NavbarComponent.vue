@@ -80,7 +80,7 @@
       </div>
 
       <!-- Renderizamos secciones con v-for -->
-      <div v-for="section in menu" :key="section.id" class="px-4 mb-3">
+      <div v-for="section in filteredMenu" :key="section.id" class="px-4 mb-3">
         <!-- Botón sección con globo flotante -->
         <div class="relative group">
           <button
@@ -245,6 +245,7 @@ import { reactive, ref, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { menu } from '@/data/menu'
+import { computed } from 'vue'
 import logoPlato from '@/assets/images/LogoScratchcopia2..png'
 
 /** Emitimos el estado del sidebar para que App.vue lo ajuste */
@@ -256,6 +257,33 @@ const authStore = useAuthStore()
 
 // Estado reactivo para trackear la ruta actual
 const currentPath = ref('')
+
+// Computed para filtrar el menú basado en el rol del usuario
+const filteredMenu = computed(() => {
+  const userRoles = authStore.userRoles || [] // Usando el getter
+
+  return (
+    menu
+      .map((section) => {
+        if (!section.items) return section
+
+        const items = section.items.filter((item) => {
+          // visible por defecto si `allowedRoles` no está definido
+          if (!item.allowedRoles || item.allowedRoles.length === 0) return true
+          // si no hay usuario logueado, no mostrar rutas restringidas
+          if (userRoles.length === 0) return false
+          // Verificar si el usuario tiene algún rol permitido
+          return item.allowedRoles.some((allowedRole) =>
+            userRoles.some((userRole) => userRole.toLowerCase() === allowedRole.toLowerCase()),
+          )
+        })
+
+        return { ...section, items }
+      })
+      // eliminar secciones sin items visibles
+      .filter((s) => !(s.items && s.items.length === 0))
+  )
+})
 
 // Función para detectar si un icono es un SVG en línea
 const isInlineSvg = (icon: string | undefined): boolean => {
