@@ -3,6 +3,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useCategoryStore } from '@/stores/categoryStore'
 import CategoryModal from '@/components/CategoryModal.vue'
+import ConfirmationModal from '@/components/Confirmationmodal.vue'
 import type { Category } from '@/types/category'
 
 const categoryStore = useCategoryStore()
@@ -83,6 +84,11 @@ async function handleDelete() {
   }
 }
 
+function cancelDelete() {
+  showDeleteConfirm.value = false
+  categoryToDelete.value = null
+}
+
 async function handleToggleActive(category: Category) {
   try {
     await categoryStore.toggleActive(category.id, !category.isActive)
@@ -114,7 +120,7 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
 
 <template>
   <div class="categories-view">
-    <!-- Toast Notification -->
+    <!-- Toast Notification (se mantiene igual) -->
     <Transition name="toast">
       <div v-if="showToast" :class="['toast', toastType]">
         <span class="toast-icon">{{ toastType === 'success' ? '✓' : '✗' }}</span>
@@ -122,7 +128,7 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
       </div>
     </Transition>
 
-    <!-- Header -->
+    <!-- Header (se mantiene igual) -->
     <div class="header">
       <div class="header-content">
         <div class="title-section">
@@ -135,7 +141,7 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
         </button>
       </div>
 
-      <!-- Stats Cards -->
+      <!-- Stats Cards (se mantiene igual) -->
       <div class="stats-grid">
         <div class="stat-card total">
           <div class="stat-icon">📋</div>
@@ -167,7 +173,7 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
       </div>
     </div>
 
-    <!-- Search and Filters -->
+    <!-- Search and Filters (se mantiene igual) -->
     <div class="filters-section">
       <div class="search-box">
         <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -211,19 +217,19 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
       </div>
     </div>
 
-    <!-- Loading State -->
+    <!-- Loading State (se mantiene igual) -->
     <div v-if="categoryStore.loading" class="loading-state">
       <div class="spinner"></div>
       <p>Cargando categorías...</p>
     </div>
 
-    <!-- Error State -->
+    <!-- Error State (se mantiene igual) -->
     <div v-else-if="categoryStore.error" class="error-message">
       <span class="error-icon">⚠️</span>
       {{ categoryStore.error }}
     </div>
 
-    <!-- No Results -->
+    <!-- No Results (se mantiene igual) -->
     <div v-else-if="!hasResults" class="empty-state">
       <div class="empty-icon">📋</div>
       <h3>No hay categorías</h3>
@@ -233,7 +239,7 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
       </button>
     </div>
 
-    <!-- Categories List -->
+    <!-- Categories List (se mantiene igual) -->
     <div v-else class="categories-list">
       <div
         v-for="category in categoryStore.sortedCategories"
@@ -271,7 +277,7 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
       </div>
     </div>
 
-    <!-- Pagination -->
+    <!-- Pagination (se mantiene igual) -->
     <div v-if="categoryStore.meta && categoryStore.meta.totalPages > 1" class="pagination">
       <button
         @click="categoryStore.setPage(categoryStore.currentPage - 1)"
@@ -307,7 +313,7 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
       </button>
     </div>
 
-    <!-- Category Modal -->
+    <!-- Category Modal (se mantiene igual) -->
     <CategoryModal
       :show="showModal"
       :category="selectedCategory"
@@ -316,32 +322,22 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
       @save="handleSave"
     />
 
-    <!-- Delete Confirmation Modal -->
-    <div v-if="showDeleteConfirm" class="modal-overlay" @click.self="showDeleteConfirm = false">
-      <div class="confirm-modal">
-        <div class="confirm-header">
-          <span class="confirm-icon">⚠️</span>
-          <h3>¿Eliminar categoría?</h3>
-        </div>
-        <p class="confirm-message">
-          Esta acción no se puede deshacer. ¿Estás seguro de que deseas eliminar esta categoría?
-        </p>
-        <div class="confirm-actions">
-          <button @click="showDeleteConfirm = false" class="btn-cancel">
-            <span class="btn-icon">✕</span>
-            Cancelar
-          </button>
-          <button @click="handleDelete" class="btn-delete">
-            <span class="btn-icon">🗑️</span>
-            Eliminar
-          </button>
-        </div>
-      </div>
-    </div>
+    <!-- Delete Confirmation Modal - AHORA USA EL NUEVO COMPONENTE -->
+    <ConfirmationModal
+      :show="showDeleteConfirm"
+      title="¿Eliminar categoría?"
+      message="Esta acción no se puede deshacer. ¿Estás seguro de que deseas eliminar esta categoría?"
+      confirm-text="Eliminar"
+      cancel-text="Cancelar"
+      type="danger"
+      @confirm="handleDelete"
+      @cancel="cancelDelete"
+    />
   </div>
 </template>
 
 <style scoped>
+/* Todos los estilos se mantienen IGUAL, solo eliminamos las clases del modal antiguo */
 .categories-view {
   min-height: 100vh;
   background-color: #e4f4fc;
@@ -930,111 +926,7 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
   height: 16px;
 }
 
-/* Confirmation Modal */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(5, 27, 58, 0.6);
-  backdrop-filter: blur(5px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-  padding: 1rem;
-}
-
-.confirm-modal {
-  background: white;
-  border-radius: 24px;
-  padding: 2rem;
-  max-width: 400px;
-  width: 90%;
-  box-shadow: 0 25px 50px -12px rgba(5, 27, 58, 0.25);
-  animation: modalAppear 0.3s ease;
-}
-
-@keyframes modalAppear {
-  from {
-    opacity: 0;
-    transform: scale(0.9) translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-.confirm-header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-}
-
-.confirm-icon {
-  font-size: 2rem;
-}
-
-.confirm-header h3 {
-  margin: 0;
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: #051b3a;
-}
-
-.confirm-message {
-  margin: 0 0 1.5rem 0;
-  color: #5d7a90;
-  line-height: 1.6;
-}
-
-.confirm-actions {
-  display: flex;
-  gap: 1rem;
-}
-
-.btn-cancel,
-.btn-delete {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.875rem;
-  border: none;
-  border-radius: 12px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.btn-cancel {
-  background: #e4f4fc;
-  color: #5d7a90;
-  border: 2px solid #b4cbd8;
-}
-
-.btn-cancel:hover {
-  background: #b4cbd8;
-  color: #051b3a;
-  transform: translateY(-2px);
-}
-
-.btn-delete {
-  background: linear-gradient(145deg, #ef4444, #dc2626);
-  color: white;
-  box-shadow: 0 5px 15px rgba(239, 68, 68, 0.3);
-}
-
-.btn-delete:hover {
-  background: linear-gradient(145deg, #dc2626, #b91c1c);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
-}
+/* ❗ ELIMINAMOS LAS CLASES DEL MODAL ANTIGUO: .modal-overlay, .confirm-modal, etc. */
 
 /* Responsive */
 @media (max-width: 768px) {
@@ -1109,10 +1001,6 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
     width: 48px;
     height: 48px;
     font-size: 1.2rem;
-  }
-
-  .confirm-actions {
-    flex-direction: column;
   }
 }
 </style>

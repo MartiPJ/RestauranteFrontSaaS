@@ -44,9 +44,6 @@ onMounted(() => {
             box-shadow: 0 10px 25px rgba(5, 27, 58, 0.3);
           "
         >
-          <!-- <span style="font-size: 2.5rem; filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.2))"
-            >🍽️</span
-          > -->
           <img :src="logoPlato" alt="Logo" class="w-15 h-15 object-contain" />
         </div>
         <h1

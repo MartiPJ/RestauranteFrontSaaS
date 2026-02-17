@@ -2,7 +2,7 @@
 <template>
   <div class="products-view">
     <div class="container">
-      <!-- Header -->
+      <!-- Header (se mantiene igual) -->
       <div class="page-header">
         <div class="title-section">
           <h1>Gestión de Productos</h1>
@@ -27,7 +27,7 @@
         </button>
       </div>
 
-      <!-- Stats Cards -->
+      <!-- Stats Cards (se mantiene igual) -->
       <div class="stats-grid">
         <div class="stat-card total">
           <div class="stat-icon">📦</div>
@@ -45,7 +45,7 @@
         </div>
       </div>
 
-      <!-- Controles -->
+      <!-- Controles (se mantiene igual) -->
       <div class="controls-section">
         <div class="items-per-page">
           <label for="itemsPerPage">Mostrar:</label>
@@ -68,13 +68,13 @@
         </div>
       </div>
 
-      <!-- Loading -->
+      <!-- Loading (se mantiene igual) -->
       <div v-if="store.loading" class="loading-state">
         <div class="spinner"></div>
         <p>Cargando productos...</p>
       </div>
 
-      <!-- Error -->
+      <!-- Error (se mantiene igual) -->
       <div v-else-if="store.error" class="error-message">
         <span class="error-icon">⚠️</span>
         <p>{{ store.error }}</p>
@@ -84,7 +84,7 @@
         </button>
       </div>
 
-      <!-- Products Grid -->
+      <!-- Products Grid (se mantiene igual) -->
       <div v-else-if="store.products.length > 0" class="products-grid">
         <ProductCard
           v-for="product in store.products"
@@ -95,7 +95,7 @@
         />
       </div>
 
-      <!-- Empty State -->
+      <!-- Empty State (se mantiene igual) -->
       <div v-else class="empty-state">
         <div class="empty-icon">🍽️</div>
         <h3>No hay productos</h3>
@@ -106,7 +106,7 @@
         </button>
       </div>
 
-      <!-- Pagination -->
+      <!-- Pagination (se mantiene igual) -->
       <div v-if="store.totalPages > 1" class="pagination-section">
         <button
           class="pagination-btn"
@@ -169,7 +169,7 @@
       </div>
     </div>
 
-    <!-- Modal Form -->
+    <!-- Modal Form (se mantiene igual) -->
     <ProductForm
       v-if="showModal"
       :product="selectedProduct"
@@ -179,28 +179,17 @@
       @close="closeModal"
     />
 
-    <!-- Delete Confirmation Modal -->
-    <div v-if="showDeleteConfirm" class="modal-overlay" @click.self="cancelDelete">
-      <div class="confirm-modal">
-        <div class="confirm-header">
-          <span class="confirm-icon">⚠️</span>
-          <h3>¿Eliminar producto?</h3>
-        </div>
-        <p class="confirm-message">
-          Esta acción no se puede deshacer. El producto será eliminado permanentemente del menú.
-        </p>
-        <div class="confirm-actions">
-          <button class="btn btn-cancel" @click="cancelDelete">
-            <span class="btn-icon">✕</span>
-            Cancelar
-          </button>
-          <button class="btn btn-danger" @click="handleDelete">
-            <span class="btn-icon">🗑️</span>
-            Eliminar
-          </button>
-        </div>
-      </div>
-    </div>
+    <!-- Delete Confirmation Modal - AHORA USA EL NUEVO COMPONENTE -->
+    <ConfirmationModal
+      :show="showDeleteConfirm"
+      title="¿Eliminar producto?"
+      message="Esta acción no se puede deshacer. El producto será eliminado permanentemente del menú."
+      confirm-text="Eliminar"
+      cancel-text="Cancelar"
+      type="danger"
+      @confirm="handleDelete"
+      @cancel="cancelDelete"
+    />
   </div>
 </template>
 
@@ -209,6 +198,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useProductStore } from '@/stores/productStore'
 import ProductCard from '@/components/ProductCard.vue'
 import ProductForm from '@/components/ProductForm.vue'
+import ConfirmationModal from '@/components/Confirmationmodal.vue'
 import type { Product, ProductFormData } from '@/types/product'
 
 const store = useProductStore()
@@ -325,6 +315,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* Todos los estilos se mantienen IGUAL, solo eliminamos las clases del modal antiguo */
 .products-view {
   min-height: 100vh;
   background-color: #e4f4fc;
@@ -706,100 +697,6 @@ onMounted(() => {
   transform: translateY(0);
 }
 
-.btn-cancel {
-  background: #e4f4fc;
-  color: #5d7a90;
-  border: 2px solid #b4cbd8;
-}
-
-.btn-cancel:hover {
-  background: #b4cbd8;
-  color: #051b3a;
-  transform: translateY(-2px);
-}
-
-.btn-danger {
-  background: linear-gradient(145deg, #ef4444, #dc2626);
-  color: white;
-  box-shadow: 0 5px 15px rgba(239, 68, 68, 0.3);
-}
-
-.btn-danger:hover {
-  background: linear-gradient(145deg, #dc2626, #b91c1c);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
-}
-
-.btn-icon {
-  font-size: 1.1rem;
-}
-
-/* Delete Confirmation Modal */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(5, 27, 58, 0.6);
-  backdrop-filter: blur(5px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-  padding: 1rem;
-}
-
-.confirm-modal {
-  background: white;
-  border-radius: 24px;
-  padding: 2rem;
-  max-width: 400px;
-  width: 90%;
-  box-shadow: 0 25px 50px -12px rgba(5, 27, 58, 0.25);
-  animation: modalAppear 0.3s ease;
-}
-
-@keyframes modalAppear {
-  from {
-    opacity: 0;
-    transform: scale(0.9) translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-.confirm-header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-}
-
-.confirm-icon {
-  font-size: 2rem;
-}
-
-.confirm-header h3 {
-  margin: 0;
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: #051b3a;
-}
-
-.confirm-message {
-  margin: 0 0 1.5rem 0;
-  color: #5d7a90;
-  line-height: 1.6;
-}
-
-.confirm-actions {
-  display: flex;
-  gap: 1rem;
-}
-
 /* Responsive */
 @media (max-width: 768px) {
   .products-view {
@@ -850,10 +747,6 @@ onMounted(() => {
   .page-numbers {
     order: -1;
   }
-
-  .confirm-actions {
-    flex-direction: column;
-  }
 }
 
 @media (max-width: 480px) {
@@ -871,4 +764,6 @@ onMounted(() => {
     height: 35px;
   }
 }
+
+/* ❗ ELIMINAMOS LAS CLASES DEL MODAL ANTIGUO: .modal-overlay, .confirm-modal, etc. */
 </style>

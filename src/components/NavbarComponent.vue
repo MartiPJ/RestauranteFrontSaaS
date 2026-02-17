@@ -3,7 +3,7 @@
   <aside
     :class="[
       'fixed left-0 top-0 h-screen bg-gradient-to-b from-[#609abb] to-[#5d7a90] text-white transition-all duration-300 ease-in-out z-50 flex flex-col shadow-2xl',
-      open.ui.isMinimized ? 'w-20' : 'w-64',
+      open.ui.isMinimized ? 'w-23' : 'w-64',
     ]"
   >
     <!-- Header con Logo y Toggle -->
@@ -45,7 +45,7 @@
     </div>
 
     <!-- Navigation Menu -->
-    <nav class="flex-1 overflow-y-auto py-4" role="navigation" aria-label="Main Navigation">
+    <nav class="flex-1 overflow-y-auto py-5" role="navigation" aria-label="Main Navigation">
       <!-- Enlace a Dashboard -->
       <div class="px-4 mb-3">
         <button @click="itemClick('/dashboard')" class="w-full" type="button">
@@ -53,7 +53,7 @@
             class="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/10 transition-colors flex-nowrap whitespace-nowrap rounded-lg"
             :class="[
               open.ui.isMinimized ? 'justify-center' : '',
-              isActive('/dashboard') ? 'bg-[#051b3a] border-r-4 border-[#e4f4fc]' : '',
+              isActive('/dashboard') ? 'bg-[#051b3a] border-r- border-[#e4f4fc]' : '',
             ]"
           >
             <svg
@@ -92,7 +92,18 @@
             type="button"
           >
             <div class="flex items-center gap-3 flex-1 min-w-0">
-              <span v-html="section.svg" class="flex-shrink-0"></span>
+              <!-- Renderizado condicional para sección: SVG o imagen -->
+              <span
+                v-if="isInlineSvg(section.svg)"
+                v-html="section.svg"
+                class="flex-shrink-0"
+              ></span>
+              <img
+                v-else-if="section.svg"
+                :src="section.svg"
+                class="w-5 h-5 flex-shrink-0 object-contain"
+                :alt="section.label"
+              />
               <span
                 v-show="!open.ui.isMinimized"
                 class="text-xs font-semibold text-white/90 uppercase truncate"
@@ -118,13 +129,12 @@
             </svg>
           </button>
 
-          <!-- Globo flotante para secciones en modo minimizado -->
+          <!-- Globo flotante para secciones en modo minimizado - CORREGIDO -->
           <div
             v-if="open.ui.isMinimized"
-            class="absolute left-full ml-3 px-3 py-2 bg-white text-gray-800 text-sm rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 whitespace-nowrap z-50 shadow-xl border border-gray-200 transform group-hover:scale-100 scale-95"
+            class="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-2 bg-white text-gray-800 text-sm rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 whitespace-nowrap z-50 shadow-xl border border-gray-200 transform group-hover:scale-100 scale-95"
           >
             {{ section.label }}
-            <!-- Punta del globo -->
             <div
               class="absolute right-full top-1/2 transform -translate-y-1/2 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-r-[6px] border-r-white"
             ></div>
@@ -150,7 +160,22 @@
                       isActive(item.path) ? 'bg-[#051b3a] border-r-4 border-[#e4f4fc]' : '',
                     ]"
                   >
-                    <span v-if="item.svg" v-html="item.svg" class="flex-shrink-0"></span>
+                    <!-- Renderizado condicional para item: SVG o imagen - CORREGIDO -->
+                    <span
+                      v-if="item.svg && isInlineSvg(item.svg)"
+                      v-html="item.svg"
+                      class="flex-shrink-0"
+                    ></span>
+                    <img
+                      v-else-if="item.svg"
+                      :src="item.svg"
+                      :class="[
+                        'flex-shrink-0 object-contain transition-all',
+                        open.ui.isMinimized ? 'w-8 h-8' : 'w-10 h-10',
+                      ]"
+                      :alt="item.label"
+                    />
+
                     <span
                       v-if="!open.ui.isMinimized"
                       class="whitespace-nowrap text-sm truncate flex-1 min-w-0"
@@ -160,13 +185,12 @@
                   </div>
                 </button>
 
-                <!-- Globo flotante para items en modo minimizado -->
+                <!-- Globo flotante para items en modo minimizado - CORREGIDO -->
                 <div
                   v-if="open.ui.isMinimized"
-                  class="absolute left-full ml-3 px-3 py-2 bg-white text-gray-800 text-sm rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 whitespace-nowrap z-50 shadow-xl border border-gray-200 transform group-hover:scale-100 scale-95"
+                  class="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-2 bg-white text-gray-800 text-sm rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 whitespace-nowrap z-50 shadow-xl border border-gray-200 transform group-hover:scale-100 scale-95"
                 >
                   {{ item.label }}
-                  <!-- Punta del globo -->
                   <div
                     class="absolute right-full top-1/2 transform -translate-y-1/2 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-r-[6px] border-r-white"
                   ></div>
@@ -180,7 +204,6 @@
 
     <!-- Footer con Cerrar Sesión -->
     <div class="border-t border-white/20 p-4">
-      <!-- Cerrar Sesión con globo flotante -->
       <div class="relative group">
         <button
           @click="handleLogout"
@@ -203,13 +226,11 @@
           >
         </button>
 
-        <!-- Globo flotante para Cerrar Sesión en modo minimizado -->
         <div
           v-if="open.ui.isMinimized"
-          class="absolute left-full ml-3 px-3 py-2 bg-white text-gray-800 text-sm rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 whitespace-nowrap z-50 shadow-xl border border-gray-200 transform group-hover:scale-100 scale-95"
+          class="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-2 bg-white text-gray-800 text-sm rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 whitespace-nowrap z-50 shadow-xl border border-gray-200 transform group-hover:scale-100 scale-95"
         >
           Cerrar Sesión
-          <!-- Punta del globo -->
           <div
             class="absolute right-full top-1/2 transform -translate-y-1/2 w-0 h-0 border-t-[6px] border-t-transparent border-b-[6px] border-b-transparent border-r-[6px] border-r-white"
           ></div>
@@ -236,10 +257,22 @@ const authStore = useAuthStore()
 // Estado reactivo para trackear la ruta actual
 const currentPath = ref('')
 
+// Función para detectar si un icono es un SVG en línea
+const isInlineSvg = (icon: string | undefined): boolean => {
+  if (!icon) return false
+  // Si el string contiene etiquetas SVG y no parece una ruta de archivo
+  return (
+    icon.includes('<svg') &&
+    !icon.includes('.png') &&
+    !icon.includes('.jpg') &&
+    !icon.includes('.svg') &&
+    !icon.startsWith('/')
+  )
+}
+
 // Función para verificar si un item está activo
 const isActive = (path: string | undefined) => {
   if (!path) return false
-
   return currentPath.value === path || currentPath.value.startsWith(path + '/')
 }
 
@@ -426,6 +459,11 @@ const handleLogout = async () => {
 /* transición suave para rotación del ícono */
 button svg.transform {
   transition: transform 200ms ease;
+}
+
+/* Estilo para imágenes en el menú */
+aside svg {
+  color: white;
 }
 
 /* Ocultar scrollbar en el nav */

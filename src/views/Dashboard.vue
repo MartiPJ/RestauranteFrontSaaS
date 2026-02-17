@@ -5,7 +5,7 @@
     <header class="dashboard-header">
       <div class="header-content">
         <div class="header-icon">
-          <img :src="logoPlato" alt="Logo" class="w-10 h-10 object-contain" />
+          <img :src="logoFromScratch" alt="Logo" class="w-10 h-10 object-contain" />
         </div>
         <div class="header-text">
           <h1>Panel de Control</h1>
@@ -29,7 +29,7 @@
         class="nav-button"
         :class="section.colorClass"
       >
-        <span class="icon">{{ section.icon }}</span>
+        <img :src="section.icon" class="w-20 h-20 object-contain" alt="Icono de sección" />
         <span class="label">{{ section.label }}</span>
         <span class="description">{{ section.description }}</span>
       </button>
@@ -64,7 +64,13 @@
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
-import logoPlato from '@/assets/images/LogoScratchcopia2..png'
+import logoFromScratch from '@/assets/images/LogoScratchcopia2..png'
+import TableImage from '@/assets/images/dinner-svgrepo-com.png'
+import KitchenImage from '@/assets/images/kitchen-pack-cook-svgrepo-com.png'
+import OrdersImage from '@/assets/images/waiter-svgrepo-com.png'
+import InvoiceImage from '@/assets/images/credit-card-money-svgrepo-com.png'
+import CategoriesImage from '@/assets/images/shopping-bag-supermarket-svgrepo-com.png'
+import ProductsImage from '@/assets/images/champagne-svgrepo-com.png'
 
 const router = useRouter()
 
@@ -82,7 +88,7 @@ const sections: DashboardSection[] = [
     id: 'mesas',
     label: 'Mesas',
     description: 'Gestionar mesas y asignaciones',
-    icon: '🪑',
+    icon: TableImage,
     route: '/tables',
     colorClass: 'color-primary',
   },
@@ -90,7 +96,7 @@ const sections: DashboardSection[] = [
     id: 'ordenar',
     label: 'Ordenar',
     description: 'Tomar y gestionar pedidos',
-    icon: '📋',
+    icon: OrdersImage,
     route: '/orders',
     colorClass: 'color-secondary',
   },
@@ -98,7 +104,7 @@ const sections: DashboardSection[] = [
     id: 'Categorias',
     label: 'Categorías',
     description: 'Administrar categorías',
-    icon: '🍽️',
+    icon: CategoriesImage,
     route: '/Categories',
     colorClass: 'color-tertiary',
   },
@@ -106,7 +112,7 @@ const sections: DashboardSection[] = [
     id: 'Productos',
     label: 'Productos',
     description: 'Inventario y productos',
-    icon: '📦',
+    icon: ProductsImage,
     route: '/Products',
     colorClass: 'color-primary',
   },
@@ -114,7 +120,7 @@ const sections: DashboardSection[] = [
     id: 'Kitchen',
     label: 'Cocina',
     description: 'Panel de cocina',
-    icon: '👨‍🍳',
+    icon: KitchenImage,
     route: '/Kitchen',
     colorClass: 'color-secondary',
   },
@@ -122,7 +128,7 @@ const sections: DashboardSection[] = [
     id: 'Invoice',
     label: 'Facturación',
     description: 'Pagos y facturas',
-    icon: '💰',
+    icon: InvoiceImage,
     route: '/Invoices',
     colorClass: 'color-tertiary',
   },
