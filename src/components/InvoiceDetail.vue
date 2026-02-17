@@ -17,16 +17,13 @@ const invoiceStore = useInvoiceStore()
 const isProcessing = ref(false)
 const showConfirmModal = ref(false)
 
-// Usar el invoice del store en lugar de computarlo localmente
+// Usar el invoice del store
 const invoice = computed(() => invoiceStore.currentInvoice)
 
-// NO cargar detalles automáticamente - dejar que el store maneje esto
-// O mejor, verificar si la orden ya está cargada
 watch(
   () => props.order,
   async (newOrder) => {
     if (newOrder) {
-      // Solo cargar si no es la misma orden ya seleccionada en el store
       if (invoiceStore.selectedOrder?.id !== newOrder.id) {
         try {
           await invoiceStore.fetchOrderDetails(newOrder.id)
@@ -94,39 +91,32 @@ function printInvoice() {
 
 <template>
   <div class="invoice-detail-container">
+    <!-- Loading Overlay -->
     <div v-if="invoiceStore.loading" class="loading-overlay">
       <div class="spinner"></div>
-      <p>Cargando detalles...</p>
+      <p class="loading-text">Cargando detalles de factura...</p>
     </div>
 
     <div v-else-if="invoice" class="invoice-content">
-      <!-- Header con acciones -->
+      <!-- Header con acciones (no imprimible) -->
       <div class="invoice-header no-print">
-        <button @click="handleClose" class="close-btn">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <line x1="18" y1="6" x2="6" y2="18" stroke-width="2" />
-            <line x1="6" y1="6" x2="18" y2="18" stroke-width="2" />
-          </svg>
-        </button>
-        <h2>Detalles de Factura</h2>
-        <div class="action-buttons">
-          <button @click="printInvoice" class="print-btn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <polyline points="6 9 6 2 18 2 18 9" stroke-width="2" />
-              <path
-                d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"
-                stroke-width="2"
-              />
-              <rect x="6" y="14" width="12" height="8" stroke-width="2" />
+        <div class="header-left">
+          <button @click="handleClose" class="btn-icon back-btn" title="Volver">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <line x1="19" y1="12" x2="5" y2="12" stroke-width="2" />
+              <polyline points="12 19 5 12 12 5" stroke-width="2" />
             </svg>
-            Imprimir
           </button>
-          <button @click="openConfirmModal" class="pay-btn">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <rect x="1" y="4" width="22" height="16" rx="2" ry="2" stroke-width="2" />
-              <line x1="1" y1="10" x2="23" y2="10" stroke-width="2" />
-            </svg>
-            Marcar como Pagada
+          <h2>Detalles de Factura</h2>
+        </div>
+        <div class="action-buttons">
+          <button @click="printInvoice" class="btn btn-secondary">
+            <span class="btn-icon">🖨️</span>
+            <span class="btn-text">Imprimir</span>
+          </button>
+          <button @click="openConfirmModal" class="btn btn-primary">
+            <span class="btn-icon">💰</span>
+            <span class="btn-text">Marcar como Pagada</span>
           </button>
         </div>
       </div>
@@ -135,85 +125,98 @@ function printInvoice() {
       <div class="invoice-document">
         <!-- Encabezado del restaurante -->
         <div class="restaurant-header">
+          <div class="restaurant-logo">
+            <span class="logo-emoji">🍽️</span>
+          </div>
           <h1>FACTURA</h1>
-          <p class="invoice-number">{{ invoice.orderNumber }}</p>
+          <p class="invoice-number">#{{ invoice.orderNumber }}</p>
         </div>
 
         <!-- Información de la orden -->
         <div class="invoice-info-section">
           <div class="info-grid">
             <div class="info-block">
-              <span class="info-label">Fecha de Emisión:</span>
+              <span class="info-label">📅 Fecha</span>
               <span class="info-value">{{ formatDate(invoice.orderDate) }}</span>
             </div>
             <div class="info-block">
-              <span class="info-label">Atendido por:</span>
+              <span class="info-label">👤 Mesero</span>
               <span class="info-value">{{ invoice.userName }}</span>
             </div>
             <div class="info-block" v-if="invoice.tableNumber">
-              <span class="info-label">Mesa:</span>
-              <span class="info-value">{{ invoice.tableNumber }}</span>
+              <span class="info-label">📍 Mesa</span>
+              <span class="info-value location-badge">{{ invoice.tableNumber }}</span>
             </div>
             <div class="info-block">
-              <span class="info-label">Rol:</span>
-              <span class="info-value role-tag">{{ invoice.userRole }}</span>
+              <span class="info-label">🎭 Rol</span>
+              <span class="info-value role-badge">{{ invoice.userRole }}</span>
             </div>
           </div>
         </div>
 
         <!-- Notas de la orden -->
         <div v-if="invoice.notes" class="notes-section">
-          <span class="notes-label">Notas:</span>
+          <div class="notes-header">
+            <span class="notes-icon">📝</span>
+            <span class="notes-label">Notas de la orden</span>
+          </div>
           <p class="notes-text">{{ invoice.notes }}</p>
         </div>
 
         <!-- Tabla de productos -->
         <div class="products-section">
           <h3>Detalle de Productos</h3>
-          <table class="products-table">
-            <thead>
-              <tr>
-                <th class="text-left">Producto</th>
-                <th class="text-center">Cantidad</th>
-                <th class="text-right">Precio Unit.</th>
-                <th class="text-right">Subtotal</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="product in invoice.products" :key="product.id">
-                <td class="text-left">
-                  <div class="product-name">{{ product.name }}</div>
-                  <div v-if="product.notes" class="product-notes">Nota: {{ product.notes }}</div>
-                </td>
-                <td class="text-center">{{ product.quantity }}</td>
-                <td class="text-right">{{ formatCurrency(product.unitPrice) }}</td>
-                <td class="text-right">{{ formatCurrency(product.subtotal) }}</td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="table-container">
+            <table class="products-table">
+              <thead>
+                <tr>
+                  <th class="text-left">Producto</th>
+                  <th class="text-center">Cant.</th>
+                  <th class="text-right">Precio Unit.</th>
+                  <th class="text-right">Subtotal</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="product in invoice.products" :key="product.id">
+                  <td class="text-left">
+                    <div class="product-name">{{ product.name }}</div>
+                    <div v-if="product.notes" class="product-notes">
+                      <span class="note-icon">💬</span>
+                      {{ product.notes }}
+                    </div>
+                  </td>
+                  <td class="text-center quantity-cell">
+                    <span class="quantity-badge">{{ product.quantity }}</span>
+                  </td>
+                  <td class="text-right">{{ formatCurrency(product.unitPrice) }}</td>
+                  <td class="text-right price-cell">{{ formatCurrency(product.subtotal) }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <!-- Totales -->
         <div class="totals-section">
-          <div class="totals-grid">
+          <div class="totals-card">
             <div class="total-row">
               <span class="total-label">Subtotal:</span>
               <span class="total-value">{{ formatCurrency(invoice.subtotal) }}</span>
             </div>
-            <div class="total-row">
+            <div class="total-row tax-row">
               <span class="total-label">Impuesto (IVA):</span>
               <span class="total-value">{{ formatCurrency(invoice.tax) }}</span>
             </div>
             <div class="total-row final-total">
               <span class="total-label">Total a Pagar:</span>
-              <span class="total-value">{{ formatCurrency(invoice.total) }}</span>
+              <span class="total-amount">{{ formatCurrency(invoice.total) }}</span>
             </div>
           </div>
         </div>
 
         <!-- Pie de página -->
         <div class="invoice-footer">
-          <p>Gracias por su preferencia</p>
+          <p class="footer-thanks">¡Gracias por su preferencia!</p>
           <p class="footer-note">Este documento es válido como comprobante de pago</p>
         </div>
       </div>
@@ -221,10 +224,13 @@ function printInvoice() {
 
     <!-- Modal de confirmación -->
     <div v-if="showConfirmModal" class="modal-overlay no-print" @click.self="closeConfirmModal">
-      <div class="modal-content">
+      <div class="modal-container">
         <div class="modal-header">
+          <div class="header-icon">
+            <span class="icon-emoji">💰</span>
+          </div>
           <h3>Confirmar Pago</h3>
-          <button @click="closeConfirmModal" class="modal-close">
+          <button @click="closeConfirmModal" class="close-btn" title="Cerrar">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <line x1="18" y1="6" x2="6" y2="18" stroke-width="2" />
               <line x1="6" y1="6" x2="18" y2="18" stroke-width="2" />
@@ -232,29 +238,24 @@ function printInvoice() {
           </button>
         </div>
         <div class="modal-body">
-          <svg
-            width="64"
-            height="64"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            class="confirm-icon"
-          >
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" stroke-width="2" />
-            <polyline points="22 4 12 14.01 9 11.01" stroke-width="2" />
-          </svg>
-          <p>
+          <div class="confirm-icon">✅</div>
+          <p class="confirm-message">
             ¿Confirmar que la orden <strong>{{ invoice?.orderNumber }}</strong> ha sido pagada?
           </p>
-          <p class="confirm-amount">Monto: {{ formatCurrency(invoice?.total || 0) }}</p>
+          <div class="confirm-amount-card">
+            <span class="amount-label">Monto total</span>
+            <span class="amount-value">{{ formatCurrency(invoice?.total || 0) }}</span>
+          </div>
         </div>
         <div class="modal-footer">
-          <button @click="closeConfirmModal" class="cancel-btn" :disabled="isProcessing">
+          <button @click="closeConfirmModal" class="btn btn-cancel" :disabled="isProcessing">
+            <span class="btn-icon">✕</span>
             Cancelar
           </button>
-          <button @click="confirmPayment" class="confirm-btn" :disabled="isProcessing">
-            <span v-if="!isProcessing">Confirmar Pago</span>
-            <span v-else>Procesando...</span>
+          <button @click="confirmPayment" class="btn btn-success" :disabled="isProcessing">
+            <span class="btn-icon" v-if="!isProcessing">✅</span>
+            <span class="spinner-small" v-else></span>
+            <span>{{ isProcessing ? 'Procesando...' : 'Confirmar Pago' }}</span>
           </button>
         </div>
       </div>
@@ -265,29 +266,32 @@ function printInvoice() {
 <style scoped>
 .invoice-detail-container {
   height: 100%;
-  background: #ffffff;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 5px 15px rgba(5, 27, 58, 0.08);
   overflow: hidden;
   display: flex;
   flex-direction: column;
   position: relative;
+  border: 1px solid rgba(96, 154, 187, 0.1);
 }
 
+/* Loading Overlay */
 .loading-overlay {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: 1rem;
+  background: white;
 }
 
 .spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #4caf50;
+  width: 48px;
+  height: 48px;
+  border: 4px solid #e4f4fc;
+  border-top-color: #609abb;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -301,215 +305,287 @@ function printInvoice() {
   }
 }
 
+.loading-text {
+  color: #5d7a90;
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* Invoice Content */
 .invoice-content {
   height: 100%;
   display: flex;
   flex-direction: column;
 }
 
+/* Header */
 .invoice-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 20px 24px;
-  border-bottom: 1px solid #e0e0e0;
-  background: #fafafa;
+  padding: 1rem 1.5rem;
+  border-bottom: 2px solid #e4f4fc;
+  background: white;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.btn-icon {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 12px;
+  background: #e4f4fc;
+  color: #609abb;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-icon:hover {
+  background: #609abb;
+  color: white;
+  transform: translateX(-3px);
 }
 
 .invoice-header h2 {
   margin: 0;
-  font-size: 20px;
+  font-size: 1.3rem;
   font-weight: 700;
-  color: #1a1a1a;
-}
-
-.close-btn {
-  padding: 8px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  border-radius: 6px;
-  transition: background 0.2s;
-}
-
-.close-btn:hover {
-  background: #e0e0e0;
-}
-
-.close-btn svg {
-  display: block;
-  stroke: #666;
+  color: #051b3a;
 }
 
 .action-buttons {
   display: flex;
-  gap: 12px;
+  gap: 0.75rem;
 }
 
-.print-btn,
-.pay-btn {
-  display: flex;
+.btn {
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
   border: none;
-  border-radius: 6px;
-  font-size: 14px;
+  border-radius: 12px;
+  font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
 }
 
-.print-btn {
-  background: #ffffff;
-  color: #666;
-  border: 1px solid #e0e0e0;
-}
-
-.print-btn:hover {
-  background: #f5f5f5;
-  border-color: #ccc;
-}
-
-.pay-btn {
-  background: #4caf50;
+.btn-primary {
+  background: linear-gradient(145deg, #609abb, #5d7a90);
   color: white;
+  box-shadow: 0 5px 15px rgba(96, 154, 187, 0.3);
 }
 
-.pay-btn:hover {
-  background: #45a049;
-  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+.btn-primary:hover {
+  background: linear-gradient(145deg, #5d7a90, #051b3a);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(5, 27, 58, 0.3);
 }
 
+.btn-secondary {
+  background: #e4f4fc;
+  color: #5d7a90;
+  border: 2px solid #b4cbd8;
+}
+
+.btn-secondary:hover {
+  background: #b4cbd8;
+  color: #051b3a;
+  transform: translateY(-2px);
+}
+
+.btn-icon {
+  font-size: 1.1rem;
+}
+
+/* Invoice Document */
 .invoice-document {
   flex: 1;
   overflow-y: auto;
-  padding: 32px 48px;
+  padding: 2rem;
   background: white;
 }
 
+/* Restaurant Header */
 .restaurant-header {
   text-align: center;
-  margin-bottom: 32px;
-  padding-bottom: 24px;
-  border-bottom: 2px solid #4caf50;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 3px solid #609abb;
+}
+
+.restaurant-logo {
+  width: 64px;
+  height: 64px;
+  background: linear-gradient(145deg, #609abb, #e4f4fc);
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+}
+
+.logo-emoji {
+  font-size: 2rem;
 }
 
 .restaurant-header h1 {
-  margin: 0 0 8px 0;
-  font-size: 32px;
-  font-weight: 700;
-  color: #1a1a1a;
+  margin: 0 0 0.5rem 0;
+  font-size: 2rem;
+  font-weight: 800;
+  color: #051b3a;
+  letter-spacing: 1px;
 }
 
 .invoice-number {
   margin: 0;
-  font-size: 18px;
-  color: #4caf50;
+  font-size: 1.1rem;
+  color: #609abb;
   font-weight: 600;
 }
 
+/* Info Section */
 .invoice-info-section {
-  margin-bottom: 24px;
+  margin-bottom: 1.5rem;
 }
 
 .info-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+  gap: 1rem;
+  background: #e4f4fc;
+  padding: 1.25rem;
+  border-radius: 16px;
 }
 
 .info-block {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0.25rem;
 }
 
 .info-label {
-  font-size: 12px;
-  color: #777;
+  font-size: 0.7rem;
+  color: #5d7a90;
   font-weight: 600;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .info-value {
-  font-size: 14px;
-  color: #1a1a1a;
-  font-weight: 500;
+  font-size: 0.9rem;
+  color: #051b3a;
+  font-weight: 600;
 }
 
-.role-tag {
+.location-badge {
   display: inline-block;
-  padding: 4px 12px;
-  background: #e3f2fd;
-  color: #1976d2;
-  border-radius: 12px;
-  font-size: 12px;
+  background: #609abb;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 30px;
+  font-size: 0.8rem;
   font-weight: 600;
-  text-transform: capitalize;
   width: fit-content;
 }
 
+.role-badge {
+  display: inline-block;
+  background: #fef3c7;
+  color: #f59e0b;
+  padding: 0.25rem 0.75rem;
+  border-radius: 30px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  width: fit-content;
+}
+
+/* Notes Section */
 .notes-section {
-  margin-bottom: 24px;
-  padding: 16px;
-  background: #fff9e6;
-  border-left: 4px solid #ffc107;
-  border-radius: 4px;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: #fff3cd;
+  border-left: 4px solid #f59e0b;
+  border-radius: 12px;
+}
+
+.notes-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.notes-icon {
+  font-size: 1rem;
 }
 
 .notes-label {
-  font-size: 12px;
-  color: #666;
+  font-size: 0.8rem;
   font-weight: 600;
+  color: #856404;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .notes-text {
-  margin: 8px 0 0 0;
-  font-size: 14px;
-  color: #333;
+  margin: 0;
+  font-size: 0.9rem;
+  color: #856404;
   line-height: 1.5;
 }
 
+/* Products Section */
 .products-section {
-  margin-bottom: 32px;
+  margin-bottom: 2rem;
 }
 
 .products-section h3 {
-  margin: 0 0 16px 0;
-  font-size: 18px;
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
   font-weight: 700;
-  color: #1a1a1a;
+  color: #051b3a;
+}
+
+.table-container {
+  border: 1px solid #e4f4fc;
+  border-radius: 16px;
+  overflow: hidden;
 }
 
 .products-table {
   width: 100%;
   border-collapse: collapse;
   background: white;
-  border: 1px solid #e0e0e0;
-  border-radius: 8px;
-  overflow: hidden;
 }
 
 .products-table thead {
-  background: #f5f5f5;
+  background: #e4f4fc;
 }
 
 .products-table th {
-  padding: 12px 16px;
-  font-size: 13px;
+  padding: 0.75rem 1rem;
+  font-size: 0.8rem;
   font-weight: 700;
-  color: #555;
+  color: #051b3a;
   text-transform: uppercase;
-  border-bottom: 2px solid #e0e0e0;
+  letter-spacing: 0.5px;
 }
 
 .products-table td {
-  padding: 16px;
-  font-size: 14px;
-  color: #333;
-  border-bottom: 1px solid #f0f0f0;
+  padding: 1rem;
+  font-size: 0.9rem;
+  color: #5d7a90;
+  border-bottom: 1px solid #e4f4fc;
 }
 
 .products-table tbody tr:last-child td {
@@ -529,34 +605,58 @@ function printInvoice() {
 }
 
 .product-name {
-  font-weight: 600;
-  color: #1a1a1a;
-  margin-bottom: 4px;
+  font-weight: 700;
+  color: #051b3a;
+  margin-bottom: 0.25rem;
 }
 
 .product-notes {
-  font-size: 12px;
-  color: #777;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  color: #b4cbd8;
   font-style: italic;
 }
 
-.totals-section {
-  margin-bottom: 32px;
+.note-icon {
+  font-size: 0.8rem;
 }
 
-.totals-grid {
+.quantity-badge {
+  display: inline-block;
+  background: #609abb;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 30px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  min-width: 40px;
+}
+
+.price-cell {
+  font-weight: 700;
+  color: #10b981;
+}
+
+/* Totals Section */
+.totals-section {
+  margin-bottom: 2rem;
+}
+
+.totals-card {
   max-width: 400px;
   margin-left: auto;
-  background: #fafafa;
-  border-radius: 8px;
-  padding: 16px;
+  background: #e4f4fc;
+  border-radius: 16px;
+  padding: 1.25rem;
 }
 
 .total-row {
   display: flex;
   justify-content: space-between;
-  padding: 8px 0;
-  border-bottom: 1px solid #e0e0e0;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(96, 154, 187, 0.2);
 }
 
 .total-row:last-child {
@@ -564,50 +664,51 @@ function printInvoice() {
 }
 
 .total-label {
-  font-size: 14px;
-  color: #555;
+  font-size: 0.9rem;
+  color: #5d7a90;
   font-weight: 500;
 }
 
 .total-value {
-  font-size: 14px;
-  color: #1a1a1a;
+  font-size: 0.9rem;
+  color: #051b3a;
   font-weight: 600;
 }
 
+.tax-row .total-value {
+  color: #f59e0b;
+}
+
 .final-total {
-  margin-top: 8px;
-  padding-top: 16px;
-  border-top: 2px solid #4caf50;
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  border-top: 2px solid #609abb;
 }
 
-.final-total .total-label {
-  font-size: 18px;
+.total-amount {
+  font-size: 1.5rem;
   font-weight: 700;
-  color: #1a1a1a;
+  color: #10b981;
 }
 
-.final-total .total-value {
-  font-size: 24px;
-  font-weight: 700;
-  color: #4caf50;
-}
-
+/* Invoice Footer */
 .invoice-footer {
   text-align: center;
-  padding-top: 24px;
-  border-top: 1px solid #e0e0e0;
+  padding-top: 1.5rem;
+  border-top: 2px dashed #b4cbd8;
 }
 
-.invoice-footer p {
-  margin: 8px 0;
-  font-size: 14px;
-  color: #555;
+.footer-thanks {
+  margin: 0 0 0.25rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #051b3a;
 }
 
 .footer-note {
-  font-size: 12px;
-  color: #999;
+  margin: 0;
+  font-size: 0.8rem;
+  color: #b4cbd8;
   font-style: italic;
 }
 
@@ -618,114 +719,198 @@ function printInvoice() {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(5, 27, 58, 0.6);
+  backdrop-filter: blur(5px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  padding: 1rem;
 }
 
-.modal-content {
+.modal-container {
   background: white;
-  border-radius: 12px;
+  border-radius: 24px;
   width: 90%;
-  max-width: 500px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  max-width: 450px;
+  box-shadow: 0 25px 50px -12px rgba(5, 27, 58, 0.25);
+  animation: modalAppear 0.3s ease;
+}
+
+@keyframes modalAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 .modal-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 20px 24px;
-  border-bottom: 1px solid #e0e0e0;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-bottom: 2px solid #e4f4fc;
+}
+
+.header-icon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(145deg, #609abb, #e4f4fc);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-emoji {
+  font-size: 1.2rem;
 }
 
 .modal-header h3 {
+  flex: 1;
   margin: 0;
-  font-size: 20px;
+  font-size: 1.2rem;
   font-weight: 700;
-  color: #1a1a1a;
+  color: #051b3a;
 }
 
-.modal-close {
-  padding: 4px;
-  background: transparent;
+.close-btn {
+  width: 36px;
+  height: 36px;
   border: none;
+  border-radius: 10px;
+  background: #e4f4fc;
+  color: #609abb;
   cursor: pointer;
-  border-radius: 4px;
-  transition: background 0.2s;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.modal-close:hover {
-  background: #f0f0f0;
+.close-btn:hover {
+  background: #609abb;
+  color: white;
+  transform: rotate(90deg);
 }
 
 .modal-body {
-  padding: 32px 24px;
+  padding: 2rem 1.5rem;
   text-align: center;
 }
 
 .confirm-icon {
-  margin: 0 auto 16px;
-  stroke: #4caf50;
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  background: #d1fae5;
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
 }
 
-.modal-body p {
-  margin: 0 0 8px 0;
-  font-size: 16px;
-  color: #333;
+.confirm-message {
+  margin: 0 0 1.5rem 0;
+  font-size: 1rem;
+  color: #5d7a90;
   line-height: 1.5;
 }
 
-.confirm-amount {
-  font-size: 24px;
+.confirm-message strong {
+  color: #051b3a;
+}
+
+.confirm-amount-card {
+  background: #e4f4fc;
+  padding: 1.25rem;
+  border-radius: 16px;
+  max-width: 300px;
+  margin: 0 auto;
+}
+
+.amount-label {
+  display: block;
+  font-size: 0.8rem;
+  color: #5d7a90;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.25rem;
+}
+
+.amount-value {
+  display: block;
+  font-size: 2rem;
   font-weight: 700;
-  color: #4caf50;
-  margin-top: 16px;
+  color: #10b981;
 }
 
 .modal-footer {
   display: flex;
-  gap: 12px;
-  padding: 16px 24px;
-  border-top: 1px solid #e0e0e0;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-top: 2px solid #e4f4fc;
 }
 
-.cancel-btn,
-.confirm-btn {
+.btn-cancel,
+.btn-success {
   flex: 1;
-  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem;
   border: none;
-  border-radius: 6px;
-  font-size: 14px;
+  border-radius: 12px;
+  font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
 }
 
-.cancel-btn {
-  background: #f5f5f5;
-  color: #666;
+.btn-cancel {
+  background: #e4f4fc;
+  color: #5d7a90;
+  border: 2px solid #b4cbd8;
 }
 
-.cancel-btn:hover:not(:disabled) {
-  background: #e0e0e0;
+.btn-cancel:hover:not(:disabled) {
+  background: #b4cbd8;
+  color: #051b3a;
+  transform: translateY(-2px);
 }
 
-.confirm-btn {
-  background: #4caf50;
+.btn-success {
+  background: linear-gradient(145deg, #10b981, #059669);
   color: white;
+  box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3);
 }
 
-.confirm-btn:hover:not(:disabled) {
-  background: #45a049;
+.btn-success:hover:not(:disabled) {
+  background: linear-gradient(145deg, #059669, #047857);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
 }
 
-.cancel-btn:disabled,
-.confirm-btn:disabled {
+.btn-cancel:disabled,
+.btn-success:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.spinner-small {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
 }
 
 /* Print styles */
@@ -750,6 +935,75 @@ function printInvoice() {
   .products-table th,
   .products-table td {
     border: 1px solid #000;
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .invoice-header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  .action-buttons {
+    width: 100%;
+  }
+
+  .btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .invoice-document {
+    padding: 1rem;
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .table-container {
+    overflow-x: auto;
+  }
+
+  .products-table {
+    min-width: 600px;
+  }
+
+  .totals-card {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .modal-footer {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .invoice-header h2 {
+    font-size: 1.1rem;
+  }
+
+  .btn-text {
+    display: none;
+  }
+
+  .btn-icon {
+    margin-right: 0;
+  }
+
+  .restaurant-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .total-amount {
+    font-size: 1.2rem;
+  }
+
+  .amount-value {
+    font-size: 1.5rem;
   }
 }
 </style>

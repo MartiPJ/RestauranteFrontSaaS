@@ -22,61 +22,51 @@ const order = ref<Order | null>(null)
 
 const statusOptions = [
   { value: OrderItemStatus.PENDING, label: 'Pendiente', color: '#f59e0b' },
-  { value: OrderItemStatus.PREPARING, label: 'En preparación', color: '#3b82f6' },
+  { value: OrderItemStatus.PREPARING, label: 'Preparando', color: '#609abb' },
   { value: OrderItemStatus.SERVED, label: 'Servido', color: '#10b981' },
   { value: OrderItemStatus.CANCELLED, label: 'Cancelado', color: '#ef4444' },
 ]
 
-const orderStatusLabel = computed(() => {
-  if (!order.value) return ''
+const orderStatusConfig = computed(() => {
+  if (!order.value)
+    return { label: 'Desconocido', color: '#5d7a90', bgColor: '#e4f4fc', icon: '❓' }
 
   switch (order.value.status) {
     case OrderStatus.OPEN:
-      return 'Abierta'
+      return { label: 'Abierta', color: '#10b981', bgColor: '#d1fae5', icon: '📋' }
     case OrderStatus.IN_PROGRESS:
-      return 'En Progreso'
+      return { label: 'En Progreso', color: '#609abb', bgColor: '#e4f4fc', icon: '⚙️' }
     case OrderStatus.READY:
-      return 'Lista'
+      return { label: 'Lista', color: '#f59e0b', bgColor: '#fef3c7', icon: '✅' }
     case OrderStatus.DELIVERED:
-      return 'Entregada'
+      return { label: 'Entregada', color: '#8b5cf6', bgColor: '#ede9fe', icon: '🚚' }
     case OrderStatus.PAID:
-      return 'Pagada'
+      return { label: 'Pagada', color: '#5d7a90', bgColor: '#e4f4fc', icon: '💰' }
     case OrderStatus.CANCELLED:
-      return 'Cancelada'
+      return { label: 'Cancelada', color: '#ef4444', bgColor: '#fee2e2', icon: '❌' }
     default:
-      return 'Desconocido'
-  }
-})
-
-const orderStatusColor = computed(() => {
-  if (!order.value) return '#6b7280'
-
-  switch (order.value.status) {
-    case OrderStatus.OPEN:
-      return '#10b981'
-    case OrderStatus.IN_PROGRESS:
-      return '#3b82f6'
-    case OrderStatus.READY:
-      return '#f59e0b'
-    case OrderStatus.DELIVERED:
-      return '#8b5cf6'
-    case OrderStatus.PAID:
-      return '#6b7280'
-    case OrderStatus.CANCELLED:
-      return '#ef4444'
-    default:
-      return '#6b7280'
+      return { label: 'Desconocido', color: '#5d7a90', bgColor: '#e4f4fc', icon: '❓' }
   }
 })
 
 const getStatusColor = (status: OrderItemStatus) => {
   const option = statusOptions.find((opt) => opt.value === status)
-  return option ? option.color : '#6b7280'
+  return option ? option.color : '#5d7a90'
 }
 
 const getStatusLabel = (status: OrderItemStatus) => {
   const option = statusOptions.find((opt) => opt.value === status)
   return option ? option.label : 'Desconocido'
+}
+
+const getStatusBgColor = (status: OrderItemStatus) => {
+  const colors = {
+    [OrderItemStatus.PENDING]: '#fef3c7',
+    [OrderItemStatus.PREPARING]: '#e4f4fc',
+    [OrderItemStatus.SERVED]: '#d1fae5',
+    [OrderItemStatus.CANCELLED]: '#fee2e2',
+  }
+  return colors[status] || '#e4f4fc'
 }
 
 watch(
@@ -129,24 +119,41 @@ function handleClose() {
 function handleUpdateItemStatus(itemId: string, status: OrderItemStatus) {
   emit('updateItemStatus', itemId, status)
 }
+
+const formattedDate = computed(() => {
+  if (!order.value) return ''
+  return new Date(order.value.createdAt).toLocaleString('es-GT', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+})
 </script>
 
 <template>
   <Transition name="modal">
     <div v-if="show" class="modal-overlay" @click.self="handleClose">
       <div class="modal-container">
+        <!-- Header -->
         <div class="modal-header">
-          <div>
-            <h2 v-if="order">Orden #{{ order.orderNumber }}</h2>
-            <p v-if="order" class="subtitle">
-              <span class="table-highlight">
-                {{ order.table ? `Mesa ${order.table.tableNumber}` : 'Para llevar' }}
-              </span>
-              <span class="separator">•</span>
-              <span>{{ new Date(order.createdAt).toLocaleString('es-GT') }}</span>
-            </p>
+          <div class="header-content">
+            <div class="header-icon">
+              <span class="icon-emoji">📋</span>
+            </div>
+            <div class="header-text">
+              <h2 v-if="order">Orden #{{ order.orderNumber }}</h2>
+              <div v-if="order" class="header-subtitle">
+                <span class="table-badge" :class="{ takeout: !order.table }">
+                  {{ order.table ? `Mesa ${order.table.tableNumber}` : 'Para llevar' }}
+                </span>
+                <span class="separator">•</span>
+                <span class="date">{{ formattedDate }}</span>
+              </div>
+            </div>
           </div>
-          <button @click="handleClose" class="close-btn">
+          <button @click="handleClose" class="close-btn" title="Cerrar">
             <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 stroke-linecap="round"
@@ -159,97 +166,80 @@ function handleUpdateItemStatus(itemId: string, status: OrderItemStatus) {
         </div>
 
         <div class="modal-body">
-          <div v-if="loading" class="loading">
+          <div v-if="loading" class="loading-state">
             <div class="spinner"></div>
-            <p>Cargando detalles...</p>
+            <p>Cargando detalles de la orden...</p>
           </div>
 
-          <div v-else-if="!order" class="empty">
-            <p>No se pudo cargar la orden</p>
+          <div v-else-if="!order" class="empty-state">
+            <span class="empty-icon">❌</span>
+            <h3>Error al cargar</h3>
+            <p>No se pudo cargar la información de la orden</p>
           </div>
 
           <div v-else class="order-details">
-            <!-- Información de la orden -->
-            <div class="order-info-section">
-              <div class="info-row">
-                <span class="label">Estado:</span>
-                <span class="value" :style="{ color: orderStatusColor, fontWeight: 600 }">
-                  {{ orderStatusLabel }}
-                </span>
-              </div>
-              <div class="info-row">
-                <span class="label">Mesero:</span>
-                <span class="value">{{ order.user.name }}</span>
-              </div>
-              <div v-if="order.notes" class="info-row">
-                <span class="label">Notas:</span>
-                <span class="value notes">{{ order.notes }}</span>
+            <!-- Info Card -->
+            <div class="info-card">
+              <div class="info-grid">
+                <div class="info-item">
+                  <span class="info-icon">📊</span>
+                  <div class="info-content">
+                    <span class="info-label">Estado de orden</span>
+                    <span class="info-value" :style="{ color: orderStatusConfig.color }">
+                      <span
+                        class="status-dot"
+                        :style="{ backgroundColor: orderStatusConfig.color }"
+                      ></span>
+                      {{ orderStatusConfig.label }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="info-item">
+                  <span class="info-icon">👤</span>
+                  <div class="info-content">
+                    <span class="info-label">Mesero</span>
+                    <span class="info-value">{{ order.user.name }}</span>
+                  </div>
+                </div>
+
+                <div v-if="order.notes" class="info-item full-width">
+                  <span class="info-icon">📝</span>
+                  <div class="info-content">
+                    <span class="info-label">Notas</span>
+                    <span class="info-value notes">{{ order.notes }}</span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <!-- Items de la orden -->
+            <!-- Items Section -->
             <div class="items-section">
-              <h3>Items de la Orden</h3>
+              <div class="section-header">
+                <h3>Items de la Orden</h3>
+                <span class="section-badge">{{ order.orderProducts?.length || 0 }} items</span>
+              </div>
+
               <div
                 v-if="!order.orderProducts || order.orderProducts.length === 0"
                 class="empty-items"
               >
-                <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
-                  />
-                </svg>
+                <span class="empty-icon">🍽️</span>
                 <p>No hay items en esta orden</p>
               </div>
+
               <div v-else class="items-list">
                 <div v-for="item in order.orderProducts" :key="item.id" class="item-card">
-                  <div class="item-main">
-                    <div class="item-info">
+                  <!-- Item Header -->
+                  <div class="item-header">
+                    <div class="item-title">
                       <h4>{{ item.product.name }}</h4>
-                      <div class="item-details">
-                        <div class="detail-item">
-                          <span class="detail-label">Cantidad:</span>
-                          <span class="detail-value">{{ item.quantity }}</span>
-                        </div>
-                        <div class="detail-item">
-                          <span class="detail-label">Precio unitario:</span>
-                          <span class="detail-value"
-                            >${{ parseFloat(item.unitPrice).toFixed(2) }}</span
-                          >
-                        </div>
-                        <div class="detail-item">
-                          <span class="detail-label">Subtotal:</span>
-                          <span class="detail-value subtotal"
-                            >${{ parseFloat(item.subtotal).toFixed(2) }}</span
-                          >
-                        </div>
-                      </div>
-                      <div v-if="item.notes" class="item-notes">
-                        <svg
-                          class="note-icon"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
-                          />
-                        </svg>
-                        <span>{{ item.notes }}</span>
-                      </div>
-                    </div>
-                    <div class="item-status-container">
                       <span
-                        class="status-badge"
+                        class="item-status-badge"
                         :style="{
-                          backgroundColor: getStatusColor(item.status) + '20',
+                          backgroundColor: getStatusBgColor(item.status),
                           color: getStatusColor(item.status),
+                          borderColor: getStatusColor(item.status),
                         }"
                       >
                         {{ getStatusLabel(item.status) }}
@@ -257,14 +247,43 @@ function handleUpdateItemStatus(itemId: string, status: OrderItemStatus) {
                     </div>
                   </div>
 
+                  <!-- Item Details -->
+                  <div class="item-details">
+                    <div class="detail-grid">
+                      <div class="detail-box">
+                        <span class="detail-label">Cantidad</span>
+                        <span class="detail-value quantity">{{ item.quantity }}</span>
+                      </div>
+                      <div class="detail-box">
+                        <span class="detail-label">Precio unitario</span>
+                        <span class="detail-value"
+                          >${{ parseFloat(item.unitPrice).toFixed(2) }}</span
+                        >
+                      </div>
+                      <div class="detail-box highlight">
+                        <span class="detail-label">Subtotal</span>
+                        <span class="detail-value subtotal"
+                          >${{ parseFloat(item.subtotal).toFixed(2) }}</span
+                        >
+                      </div>
+                    </div>
+
+                    <div v-if="item.notes" class="item-notes">
+                      <span class="note-icon">💬</span>
+                      <span class="note-text">{{ item.notes }}</span>
+                    </div>
+                  </div>
+
+                  <!-- Status Actions -->
                   <div class="item-actions">
-                    <label>Cambiar estado:</label>
+                    <label class="actions-label">Cambiar estado:</label>
                     <div class="status-buttons">
                       <button
                         v-for="status in statusOptions"
                         :key="status.value"
                         @click="handleUpdateItemStatus(item.id, status.value)"
-                        :class="['status-btn', { active: item.status === status.value }]"
+                        class="status-btn"
+                        :class="{ active: item.status === status.value }"
                         :style="{
                           borderColor: status.color,
                           backgroundColor: item.status === status.value ? status.color : 'white',
@@ -279,26 +298,30 @@ function handleUpdateItemStatus(itemId: string, status: OrderItemStatus) {
               </div>
             </div>
 
-            <!-- Totales -->
-            <div class="totals-section">
+            <!-- Totals Section -->
+            <div class="totals-card">
               <div class="total-row">
-                <span>Subtotal:</span>
+                <span>Subtotal</span>
                 <span>${{ parseFloat(order.subtotal).toFixed(2) }}</span>
               </div>
               <div class="total-row">
-                <span>Impuestos:</span>
+                <span>Impuestos</span>
                 <span>${{ parseFloat(order.tax).toFixed(2) }}</span>
               </div>
-              <div class="total-row total">
-                <span>Total:</span>
+              <div class="total-row final">
+                <span>Total</span>
                 <span class="total-amount">${{ parseFloat(order.total).toFixed(2) }}</span>
               </div>
             </div>
           </div>
         </div>
 
+        <!-- Footer -->
         <div class="modal-footer">
-          <button @click="handleClose" class="btn btn-primary">Cerrar</button>
+          <button @click="handleClose" class="btn btn-primary">
+            <span class="btn-icon">✓</span>
+            <span class="btn-text">Cerrar</span>
+          </button>
         </div>
       </div>
     </div>
@@ -312,104 +335,156 @@ function handleUpdateItemStatus(itemId: string, status: OrderItemStatus) {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(5, 27, 58, 0.6);
+  backdrop-filter: blur(5px);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1000;
-  padding: 20px;
+  padding: 1rem;
 }
 
 .modal-container {
   background: white;
-  border-radius: 12px;
+  border-radius: 24px;
   width: 100%;
-  max-width: 800px;
+  max-width: 900px;
   max-height: 90vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 25px 50px -12px rgba(5, 27, 58, 0.25);
+  animation: modalAppear 0.3s ease;
 }
 
+@keyframes modalAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Header */
 .modal-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  padding: 24px;
-  border-bottom: 1px solid #e5e7eb;
+  align-items: center;
+  padding: 1.5rem 1.5rem 1rem 1.5rem;
+  border-bottom: 2px solid #e4f4fc;
 }
 
-.modal-header h2 {
-  margin: 0 0 8px 0;
-  font-size: 24px;
-  color: #1f2937;
-}
-
-.subtitle {
-  margin: 0;
-  font-size: 15px;
-  color: #6b7280;
+.header-content {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 1rem;
 }
 
-.table-highlight {
+.header-icon {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(145deg, #609abb, #e4f4fc);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-emoji {
+  font-size: 1.5rem;
+}
+
+.header-text h2 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.5rem;
   font-weight: 700;
-  font-size: 16px;
-  color: #1f2937;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #051b3a;
+  letter-spacing: -0.3px;
+}
+
+.header-subtitle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #5d7a90;
+}
+
+.table-badge {
+  background: #e4f4fc;
+  color: #609abb;
+  padding: 0.25rem 0.75rem;
+  border-radius: 30px;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.table-badge.takeout {
+  background: #fef3c7;
+  color: #f59e0b;
 }
 
 .separator {
-  color: #d1d5db;
+  color: #b4cbd8;
+}
+
+.date {
+  color: #5d7a90;
 }
 
 .close-btn {
-  background: none;
+  background: #e4f4fc;
   border: none;
   cursor: pointer;
-  padding: 4px;
-  color: #6b7280;
-  transition: color 0.2s;
+  padding: 0.5rem;
+  color: #609abb;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
 }
 
 .close-btn:hover {
-  color: #1f2937;
+  background: #609abb;
+  color: white;
+  transform: rotate(90deg);
 }
 
 .icon {
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
 }
 
+/* Body */
 .modal-body {
   flex: 1;
   overflow: auto;
-  padding: 24px;
+  padding: 1.5rem;
 }
 
-.loading,
-.empty {
+/* Loading State */
+.loading-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 20px;
-  color: #6b7280;
+  padding: 3rem;
+  color: #5d7a90;
 }
 
 .spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #e5e7eb;
-  border-top-color: #3b82f6;
+  width: 48px;
+  height: 48px;
+  border: 4px solid #e4f4fc;
+  border-top-color: #609abb;
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin-bottom: 16px;
+  margin-bottom: 1rem;
 }
 
 @keyframes spin {
@@ -418,219 +493,292 @@ function handleUpdateItemStatus(itemId: string, status: OrderItemStatus) {
   }
 }
 
-.order-details {
+/* Empty State */
+.empty-state {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-}
-
-.order-info-section {
-  background: #f9fafb;
-  border-radius: 8px;
-  padding: 16px;
-}
-
-.info-row {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.info-row:last-child {
-  border-bottom: none;
-}
-
-.label {
-  font-weight: 600;
-  color: #374151;
-  min-width: 100px;
-}
-
-.value {
-  color: #6b7280;
-  flex: 1;
-  text-align: right;
-}
-
-.value.notes {
-  font-style: italic;
-  color: #4b5563;
-}
-
-.items-section h3 {
-  font-size: 18px;
-  font-weight: 600;
-  color: #1f2937;
-  margin: 0 0 16px 0;
-}
-
-.empty-items {
+  justify-content: center;
+  padding: 3rem;
   text-align: center;
-  padding: 40px 20px;
-  color: #9ca3af;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
 }
 
 .empty-icon {
-  width: 48px;
-  height: 48px;
-  color: #d1d5db;
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  background: #e4f4fc;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.empty-state h3 {
+  color: #051b3a;
+  margin: 0 0 0.5rem 0;
+}
+
+.empty-state p {
+  color: #5d7a90;
+  margin: 0;
+}
+
+/* Info Card */
+.info-card {
+  background: #e4f4fc;
+  border-radius: 20px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.info-item.full-width {
+  grid-column: 1 / -1;
+}
+
+.info-icon {
+  font-size: 1.25rem;
+  background: white;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.info-content {
+  flex: 1;
+}
+
+.info-label {
+  display: block;
+  font-size: 0.75rem;
+  color: #5d7a90;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.25rem;
+}
+
+.info-value {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: #051b3a;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.info-value.notes {
+  font-style: italic;
+  font-weight: 400;
+  color: #5d7a90;
+}
+
+/* Items Section */
+.items-section {
+  margin-bottom: 1.5rem;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.section-header h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #051b3a;
+  margin: 0;
+}
+
+.section-badge {
+  background: #e4f4fc;
+  color: #609abb;
+  padding: 0.25rem 0.75rem;
+  border-radius: 30px;
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 
 .items-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 1rem;
 }
 
 .item-card {
   background: white;
-  border: 2px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 20px;
-  transition: all 0.2s;
+  border: 2px solid #e4f4fc;
+  border-radius: 16px;
+  padding: 1.25rem;
+  transition: all 0.3s ease;
 }
 
 .item-card:hover {
-  border-color: #3b82f6;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+  border-color: #609abb;
+  box-shadow: 0 5px 15px rgba(96, 154, 187, 0.1);
 }
 
-.item-main {
+.item-header {
+  margin-bottom: 1rem;
+}
+
+.item-title {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 16px;
+  align-items: center;
+  gap: 1rem;
 }
 
-.item-info {
-  flex: 1;
-}
-
-.item-info h4 {
-  font-size: 18px;
+.item-title h4 {
+  font-size: 1.1rem;
   font-weight: 700;
-  color: #1f2937;
-  margin: 0 0 12px 0;
+  color: #051b3a;
+  margin: 0;
 }
 
-.item-details {
+.item-status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 30px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 2px solid transparent;
+}
+
+.detail-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 12px;
-  margin-bottom: 12px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 
-.detail-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.detail-box {
+  background: #e4f4fc;
+  padding: 0.75rem;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.detail-box.highlight {
+  background: #d1fae5;
 }
 
 .detail-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: #6b7280;
+  display: block;
+  font-size: 0.7rem;
+  color: #5d7a90;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  margin-bottom: 0.25rem;
 }
 
 .detail-value {
-  font-size: 15px;
-  font-weight: 600;
-  color: #1f2937;
+  font-weight: 700;
+  color: #051b3a;
+  font-size: 1rem;
+}
+
+.detail-value.quantity {
+  color: #609abb;
+  font-size: 1.1rem;
 }
 
 .detail-value.subtotal {
   color: #10b981;
-  font-size: 16px;
+  font-size: 1.1rem;
 }
 
 .item-notes {
   display: flex;
-  align-items: start;
-  gap: 8px;
-  font-size: 14px;
-  color: #4b5563;
+  align-items: flex-start;
+  gap: 0.5rem;
   background: #fef3c7;
-  padding: 10px 12px;
-  border-radius: 6px;
+  padding: 0.75rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  color: #f59e0b;
   border-left: 3px solid #f59e0b;
 }
 
 .note-icon {
-  width: 16px;
-  height: 16px;
-  flex-shrink: 0;
-  color: #f59e0b;
-  margin-top: 2px;
+  font-size: 1rem;
 }
 
-.item-status-container {
-  margin-left: 16px;
-}
-
-.status-badge {
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  white-space: nowrap;
+.note-text {
+  flex: 1;
+  font-style: italic;
+  color: #5d7a90;
 }
 
 .item-actions {
-  border-top: 2px solid #e5e7eb;
-  padding-top: 16px;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 2px dashed #e4f4fc;
 }
 
-.item-actions label {
+.actions-label {
   display: block;
-  font-size: 13px;
+  font-size: 0.8rem;
   font-weight: 600;
-  color: #374151;
-  margin-bottom: 10px;
+  color: #5d7a90;
+  margin-bottom: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .status-buttons {
   display: flex;
-  gap: 8px;
+  gap: 0.5rem;
   flex-wrap: wrap;
 }
 
 .status-btn {
-  padding: 8px 16px;
-  background: white;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 13px;
+  padding: 0.5rem 1rem;
+  border: 2px solid;
+  border-radius: 30px;
+  font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
+  background: white;
 }
 
 .status-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
 .status-btn.active {
   font-weight: 700;
 }
 
-.totals-section {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 12px;
-  padding: 24px;
-  margin-top: 16px;
+/* Totals Card */
+.totals-card {
+  background: linear-gradient(145deg, #609abb, #5d7a90);
+  border-radius: 20px;
+  padding: 1.5rem;
   color: white;
 }
 
@@ -638,59 +786,131 @@ function handleUpdateItemStatus(itemId: string, status: OrderItemStatus) {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 0;
+  padding: 0.5rem 0;
   color: rgba(255, 255, 255, 0.9);
-  font-size: 15px;
+  font-size: 1rem;
 }
 
-.total-row.total {
+.total-row.final {
   border-top: 2px solid rgba(255, 255, 255, 0.3);
-  margin-top: 8px;
-  padding-top: 12px;
+  margin-top: 0.5rem;
+  padding-top: 1rem;
   font-weight: 700;
-  color: white;
-  font-size: 16px;
+  font-size: 1.1rem;
 }
 
 .total-amount {
-  font-size: 28px;
+  font-size: 1.8rem;
   font-weight: 700;
+  color: white;
 }
 
+/* Footer */
 .modal-footer {
   display: flex;
-  gap: 12px;
-  padding: 24px;
-  border-top: 1px solid #e5e7eb;
+  padding: 1.5rem;
+  border-top: 2px solid #e4f4fc;
 }
 
 .btn {
   flex: 1;
-  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem;
   border: none;
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: 12px;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
 }
 
 .btn-primary {
-  background-color: #3b82f6;
+  background: linear-gradient(145deg, #609abb, #5d7a90);
   color: white;
+  box-shadow: 0 5px 15px rgba(96, 154, 187, 0.3);
 }
 
 .btn-primary:hover {
-  background-color: #2563eb;
+  background: linear-gradient(145deg, #5d7a90, #051b3a);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(5, 27, 58, 0.3);
 }
 
+.btn-icon {
+  font-size: 1.1rem;
+}
+
+/* Modal Transitions */
 .modal-enter-active,
 .modal-leave-active {
-  transition: opacity 0.3s;
+  transition: opacity 0.3s ease;
 }
 
 .modal-enter-from,
 .modal-leave-to {
   opacity: 0;
+}
+
+.modal-enter-active .modal-container,
+.modal-leave-active .modal-container {
+  transition: transform 0.3s ease;
+}
+
+.modal-enter-from .modal-container,
+.modal-leave-to .modal-container {
+  transform: scale(0.95) translateY(20px);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .status-buttons {
+    flex-direction: column;
+  }
+
+  .status-btn {
+    width: 100%;
+  }
+
+  .header-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .header-subtitle {
+    flex-wrap: wrap;
+  }
+
+  .total-amount {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .close-btn {
+    align-self: flex-end;
+  }
+
+  .item-title {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 </style>

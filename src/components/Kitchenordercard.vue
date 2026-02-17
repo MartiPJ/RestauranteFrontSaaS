@@ -7,7 +7,12 @@
         <div class="order-badges">
           <span class="badge badge-order-number">#{{ shortOrderNumber }}</span>
           <span class="badge" :class="`badge-${order.status}`">
+            <span class="badge-icon">{{ statusIcon }}</span>
             {{ statusLabel }}
+          </span>
+          <span v-if="isPriority" class="badge badge-priority">
+            <span class="badge-icon">⚡</span>
+            Prioritario
           </span>
         </div>
 
@@ -22,15 +27,15 @@
           </div>
           <div class="meta-item">
             <span class="meta-icon">📍</span>
-            <span class="meta-text mesa-info">
-              {{ order.table?.tableNumber || 'Para llevar' }}
+            <span class="meta-text location-badge">
+              {{ order.table?.tableNumber ? `Mesa ${order.table.tableNumber}` : '🥡 Para llevar' }}
             </span>
           </div>
         </div>
       </div>
 
       <div class="order-header-right">
-        <div class="order-timer" v-if="isActive">
+        <div class="order-timer" v-if="isActive" :class="{ 'timer-warning': elapsedMinutes > 15 }">
           <span class="timer-icon">⏱️</span>
           <span class="timer-time">{{ elapsedTime }}</span>
         </div>
@@ -42,6 +47,7 @@
             @click="emit('updateOrderStatus', order.id, action.status)"
             class="btn btn-action"
             :class="`btn-${action.status}`"
+            :title="action.label"
           >
             <span class="btn-icon">{{ action.icon }}</span>
             <span class="btn-text">{{ action.label }}</span>
@@ -53,7 +59,10 @@
     <!-- PRODUCTOS: Diseño tipo ticket, ultra legible -->
     <div class="order-products">
       <div class="products-header">
-        <span class="products-title">🍽️ Productos</span>
+        <span class="products-title">
+          <span class="title-icon">🍽️</span>
+          Productos
+        </span>
         <span class="products-count">{{ orderProducts.length }} items</span>
       </div>
 
@@ -64,22 +73,20 @@
           class="product-item"
           :class="`product-${product.status}`"
         >
-          <!-- Estado visual del producto -->
-          <div class="product-status-indicator">
-            <span class="status-dot" :class="`dot-${product.status}`"></span>
-          </div>
+          <!-- Estado visual del producto (barra lateral) -->
+          <div class="product-status-bar" :class="`bar-${product.status}`"></div>
 
-          <!-- Cantidad - GRANDE y visible -->
-          <div class="product-quantity">
+          <!-- Cantidad - MUY GRANDE y visible -->
+          <div class="product-quantity" :class="`quantity-${product.status}`">
             <span class="quantity-number">{{ product.quantity }}</span>
-            <span class="quantity-label">x</span>
           </div>
 
           <!-- Información del producto -->
           <div class="product-info">
-            <div class="product-name-row">
+            <div class="product-header-row">
               <span class="product-name">{{ product.product.name }}</span>
-              <span class="product-status-badge" :class="`badge-${product.status}`">
+              <span class="product-status-chip" :class="`chip-${product.status}`">
+                <span class="chip-icon">{{ productStatusIcon[product.status] }}</span>
                 {{ productStatusLabel[product.status] }}
               </span>
             </div>
@@ -99,6 +106,7 @@
                 class="btn-status"
                 :class="[`btn-status-${status.value}`, { active: product.status === status.value }]"
                 :disabled="product.status === status.value"
+                :title="status.label"
               >
                 <span class="status-icon">{{ status.icon }}</span>
                 <span class="status-label">{{ status.label }}</span>
@@ -143,6 +151,19 @@ const shortOrderNumber = computed(() => {
   return parts[parts.length - 1]
 })
 
+// Íconos para estados de orden
+const statusIcon = computed(() => {
+  const icons: Record<string, string> = {
+    [OrderStatus.OPEN]: '🆕',
+    [OrderStatus.IN_PROGRESS]: '🔥',
+    [OrderStatus.READY]: '✅',
+    [OrderStatus.DELIVERED]: '🚚',
+    [OrderStatus.PAID]: '💰',
+    [OrderStatus.CANCELLED]: '❌',
+  }
+  return icons[props.order.status] || '📋'
+})
+
 // Estado de la orden en español
 const statusLabel = computed(() => {
   const labels: Record<string, string> = {
@@ -159,36 +180,46 @@ const statusLabel = computed(() => {
 // Clase CSS para el borde de la tarjeta
 const statusClass = computed(() => `status-${props.order.status}`)
 
+// Si la orden es prioritaria (más de 15 minutos o más de 5 items)
+const isPriority = computed(() => {
+  const minutes = elapsedMinutes.value
+  const itemsCount = orderProducts.value.length
+  return minutes > 15 || itemsCount > 5
+})
+
 // Si la orden está activa (para timer)
 const isActive = computed(() =>
   [OrderStatus.OPEN, OrderStatus.IN_PROGRESS].includes(props.order.status),
 )
 
-// Tiempo transcurrido formateado
-const elapsedTime = computed(() => {
+// Minutos transcurridos
+const elapsedMinutes = computed(() => {
   const created = new Date(props.order.createdAt)
   const now = new Date()
-  const diff = now.getTime() - created.getTime()
+  return Math.floor((now.getTime() - created.getTime()) / 60000)
+})
 
-  const hours = Math.floor(diff / 3600000)
-  const minutes = Math.floor((diff % 3600000) / 60000)
+// Tiempo transcurrido formateado
+const elapsedTime = computed(() => {
+  const minutes = elapsedMinutes.value
+  const hours = Math.floor(minutes / 60)
+  const mins = minutes % 60
 
-  if (hours > 0) return `${hours}h ${minutes}m`
-  return `${minutes}m`
+  if (hours > 0) return `${hours}h ${mins}m`
+  return `${mins}m`
 })
 
 // Tiempo relativo (hace X minutos)
 const timeAgo = computed(() => {
+  const minutes = elapsedMinutes.value
+
+  if (minutes < 1) return 'Ahora'
+  if (minutes < 60) return `Hace ${minutes} min`
+
   const created = new Date(props.order.createdAt)
-  const now = new Date()
-  const diff = Math.floor((now.getTime() - created.getTime()) / 60000)
-
-  if (diff < 1) return 'Ahora'
-  if (diff < 60) return `Hace ${diff} min`
-
   const hours = created.getHours().toString().padStart(2, '0')
-  const minutes = created.getMinutes().toString().padStart(2, '0')
-  return `${hours}:${minutes}`
+  const mins = created.getMinutes().toString().padStart(2, '0')
+  return `${hours}:${mins}`
 })
 
 // Estados disponibles para productos
@@ -197,6 +228,14 @@ const productStatuses = [
   { value: OrderItemStatus.PREPARING, label: 'Preparar', icon: '🔥' },
   { value: OrderItemStatus.SERVED, label: 'Servido', icon: '✅' },
 ]
+
+// Íconos para estados de producto
+const productStatusIcon = {
+  [OrderItemStatus.PENDING]: '⏳',
+  [OrderItemStatus.PREPARING]: '🔥',
+  [OrderItemStatus.SERVED]: '✅',
+  [OrderItemStatus.CANCELLED]: '❌',
+}
 
 // Labels para mostrar el estado del producto
 const productStatusLabel = {
@@ -216,13 +255,11 @@ const availableActions = computed(() => {
         status: OrderStatus.IN_PROGRESS,
         label: 'Iniciar',
         icon: '🔥',
-        primary: true,
       })
       actions.push({
         status: OrderStatus.CANCELLED,
         label: 'Cancelar',
         icon: '❌',
-        danger: true,
       })
       break
     case OrderStatus.IN_PROGRESS:
@@ -230,21 +267,18 @@ const availableActions = computed(() => {
         status: OrderStatus.READY,
         label: 'Lista',
         icon: '✅',
-        primary: true,
       })
       actions.push({
         status: OrderStatus.CANCELLED,
         label: 'Cancelar',
         icon: '❌',
-        danger: true,
       })
       break
     case OrderStatus.READY:
       actions.push({
         status: OrderStatus.DELIVERED,
         label: 'Entregar',
-        icon: '🚀',
-        primary: true,
+        icon: '🚚',
       })
       break
   }
@@ -254,115 +288,104 @@ const availableActions = computed(() => {
 </script>
 
 <style scoped>
-/* ===== VARIABLES ===== */
-:root {
-  --color-primary: #2563eb;
-  --color-success: #16a34a;
-  --color-warning: #ca8a04;
-  --color-danger: #dc2626;
-  --color-gray-50: #f9fafb;
-  --color-gray-100: #f3f4f6;
-  --color-gray-200: #e5e7eb;
-  --color-gray-600: #4b5563;
-  --color-gray-900: #111827;
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-  --radius-lg: 16px;
-  --radius-md: 12px;
-  --radius-sm: 8px;
-}
-
 /* ===== TARJETA PRINCIPAL ===== */
 .order-card {
   background: white;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
+  border-radius: 20px;
+  box-shadow: 0 5px 15px rgba(5, 27, 58, 0.08);
   overflow: hidden;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   border-left: 6px solid transparent;
   display: flex;
   flex-direction: column;
   height: 100%;
+  border: 1px solid rgba(96, 154, 187, 0.1);
 }
 
 .order-card:hover {
-  box-shadow: var(--shadow-lg);
-  transform: translateY(-2px);
+  box-shadow: 0 12px 25px rgba(5, 27, 58, 0.15);
+  transform: translateY(-4px);
 }
 
 /* Estados de la orden (colores en borde izquierdo) */
 .status-open {
-  border-left-color: var(--color-primary);
-  background: #eff6ff;
+  border-left-color: #609abb;
+  background: linear-gradient(to right, rgba(96, 154, 187, 0.05), white);
 }
 .status-in_progress {
-  border-left-color: var(--color-warning);
-  background: #fef9e7;
+  border-left-color: #f59e0b;
+  background: linear-gradient(to right, rgba(245, 158, 11, 0.05), white);
 }
 .status-ready {
-  border-left-color: var(--color-success);
-  background: #f0fdf4;
+  border-left-color: #10b981;
+  background: linear-gradient(to right, rgba(16, 185, 129, 0.05), white);
 }
 .status-delivered {
   border-left-color: #8b5cf6;
-  background: #f5f3ff;
-  opacity: 0.9;
+  background: linear-gradient(to right, rgba(139, 92, 246, 0.05), white);
 }
 .status-cancelled {
-  border-left-color: var(--color-gray-600);
-  background: #f3f4f6;
-  opacity: 0.8;
+  border-left-color: #5d7a90;
+  background: #f8fafc;
+  opacity: 0.9;
 }
 
 /* ===== HEADER ===== */
 .order-header {
-  padding: 20px;
+  padding: 1.25rem;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  border-bottom: 2px solid #e5e7eb;
+  border-bottom: 2px solid #e4f4fc;
   background: white;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
 .order-header-left {
   flex: 1;
+  min-width: 280px;
 }
 
 .order-badges {
   display: flex;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
   flex-wrap: wrap;
 }
 
 .badge {
-  padding: 6px 16px;
-  border-radius: 9999px;
-  font-size: 16px;
+  padding: 0.35rem 1rem;
+  border-radius: 30px;
+  font-size: 0.9rem;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
-  letter-spacing: 0.5px;
+  gap: 0.4rem;
+  letter-spacing: 0.3px;
+}
+
+.badge-icon {
+  font-size: 1rem;
 }
 
 .badge-order-number {
-  background: var(--color-gray-900);
+  background: #051b3a;
   color: white;
-  font-size: 18px;
-  padding: 6px 20px;
+  font-size: 1rem;
+  padding: 0.35rem 1.2rem;
 }
 
 .badge-open {
-  background: var(--color-primary);
+  background: #609abb;
   color: white;
 }
 .badge-in_progress {
-  background: var(--color-warning);
+  background: #f59e0b;
   color: white;
 }
 .badge-ready {
-  background: var(--color-success);
+  background: #10b981;
   color: white;
 }
 .badge-delivered {
@@ -370,202 +393,13 @@ const availableActions = computed(() => {
   color: white;
 }
 .badge-cancelled {
-  background: var(--color-gray-600);
+  background: #5d7a90;
   color: white;
 }
-
-.order-meta {
-  display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
-}
-
-.meta-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--color-gray-600);
-  font-size: 15px;
-  font-weight: 500;
-}
-
-.meta-icon {
-  font-size: 18px;
-}
-
-.meta-text {
-  color: var(--color-gray-900);
-}
-
-.mesa-info {
-  font-weight: 700;
-  background: #e5e7eb;
-  padding: 4px 12px;
-  border-radius: 9999px;
-  color: var(--color-gray-900);
-}
-
-.order-header-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 12px;
-}
-
-.order-timer {
-  background: #1e293b;
+.badge-priority {
+  background: #ef4444;
   color: white;
-  padding: 8px 16px;
-  border-radius: 9999px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 700;
-  font-size: 18px;
-}
-
-.timer-icon {
-  font-size: 18px;
-}
-
-.timer-time {
-  font-family: monospace;
-}
-
-/* ===== ACCIONES DE LA ORDEN ===== */
-.order-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.btn-action {
-  padding: 12px 20px;
-  border: none;
-  border-radius: var(--radius-sm);
-  font-weight: 700;
-  font-size: 16px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  color: white;
-  box-shadow: var(--shadow-sm);
-}
-
-.btn-action:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-}
-
-.btn-action:active {
-  transform: translateY(0);
-}
-
-.btn-icon {
-  font-size: 20px;
-}
-
-.btn-in_progress {
-  background: var(--color-primary);
-}
-.btn-ready {
-  background: var(--color-success);
-}
-.btn-delivered {
-  background: #8b5cf6;
-}
-.btn-cancelled {
-  background: var(--color-danger);
-}
-
-/* ===== PRODUCTOS ===== */
-.order-products {
-  padding: 20px;
-  background: white;
-  flex: 1;
-}
-
-.products-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.products-title {
-  font-size: 20px;
-  font-weight: 800;
-  color: var(--color-gray-900);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.products-count {
-  background: var(--color-gray-100);
-  padding: 4px 12px;
-  border-radius: 9999px;
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--color-gray-600);
-}
-
-.products-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-/* ===== ITEM DE PRODUCTO ===== */
-.product-item {
-  display: flex;
-  gap: 16px;
-  padding: 16px;
-  background: var(--color-gray-50);
-  border-radius: var(--radius-md);
-  border: 2px solid transparent;
-  transition: all 0.2s ease;
-  position: relative;
-}
-
-/* Estados del producto */
-.product-pending {
-  border-color: #9ca3af;
-  background: white;
-}
-.product-preparing {
-  border-color: var(--color-warning);
-  background: #fef3c7;
-}
-.product-served {
-  border-color: var(--color-success);
-  background: #d1fae5;
-  opacity: 0.9;
-}
-
-.product-status-indicator {
-  display: flex;
-  align-items: flex-start;
-  padding-top: 4px;
-}
-
-.status-dot {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  display: block;
-}
-
-.dot-pending {
-  background: #9ca3af;
-}
-.dot-preparing {
-  background: var(--color-warning);
-  animation: pulse 1.5s infinite;
-}
-.dot-served {
-  background: var(--color-success);
+  animation: pulse 2s infinite;
 }
 
 @keyframes pulse {
@@ -574,33 +408,239 @@ const availableActions = computed(() => {
     opacity: 1;
   }
   50% {
-    opacity: 0.5;
+    opacity: 0.8;
   }
+}
+
+.order-meta {
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #5d7a90;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.meta-icon {
+  font-size: 1.1rem;
+}
+
+.meta-text {
+  color: #051b3a;
+}
+
+.location-badge {
+  background: #e4f4fc;
+  padding: 0.25rem 0.75rem;
+  border-radius: 30px;
+  font-weight: 600;
+}
+
+.order-header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+
+.order-timer {
+  background: #051b3a;
+  color: white;
+  padding: 0.4rem 1rem;
+  border-radius: 30px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.order-timer.timer-warning {
+  background: #ef4444;
+  animation: pulse 2s infinite;
+}
+
+.timer-icon {
+  font-size: 1rem;
+}
+
+.timer-time {
+  font-family: monospace;
+  font-size: 1.1rem;
+}
+
+/* ===== ACCIONES DE LA ORDEN ===== */
+.order-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-action {
+  padding: 0.6rem 1.2rem;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: white;
+}
+
+.btn-action:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.btn-action:active {
+  transform: translateY(0);
+}
+
+.btn-icon {
+  font-size: 1.1rem;
+}
+
+.btn-in_progress {
+  background: linear-gradient(145deg, #609abb, #5d7a90);
+}
+.btn-ready {
+  background: linear-gradient(145deg, #10b981, #059669);
+}
+.btn-delivered {
+  background: linear-gradient(145deg, #8b5cf6, #7c3aed);
+}
+.btn-cancelled {
+  background: linear-gradient(145deg, #ef4444, #dc2626);
+}
+
+/* ===== PRODUCTOS ===== */
+.order-products {
+  padding: 1.25rem;
+  background: white;
+  flex: 1;
+}
+
+.products-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.products-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #051b3a;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.title-icon {
+  font-size: 1.2rem;
+}
+
+.products-count {
+  background: #e4f4fc;
+  color: #609abb;
+  padding: 0.2rem 0.8rem;
+  border-radius: 30px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.products-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* ===== ITEM DE PRODUCTO ===== */
+.product-item {
+  display: flex;
+  gap: 1rem;
+  background: #f8fafc;
+  border-radius: 16px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  border: 1px solid #e4f4fc;
+}
+
+.product-item:hover {
+  box-shadow: 0 5px 15px rgba(5, 27, 58, 0.1);
+}
+
+/* Barra lateral de estado */
+.product-status-bar {
+  width: 6px;
+  height: auto;
+  transition: all 0.3s ease;
+}
+
+.bar-pending {
+  background: #b4cbd8;
+}
+.bar-preparing {
+  background: #f59e0b;
+  animation: pulse 2s infinite;
+}
+.bar-served {
+  background: #10b981;
+}
+
+/* Estados del producto */
+.product-pending {
+  background: white;
+}
+.product-preparing {
+  background: #fef3c7;
+}
+.product-served {
+  background: #d1fae5;
+  opacity: 0.9;
 }
 
 /* ===== CANTIDAD - MUY GRANDE ===== */
 .product-quantity {
   display: flex;
-  align-items: baseline;
-  background: var(--color-gray-900);
-  padding: 8px 12px;
-  border-radius: var(--radius-sm);
-  min-width: 70px;
+  align-items: center;
   justify-content: center;
+  min-width: 60px;
+  padding: 0.5rem 0;
+  border-radius: 12px;
+  margin: 0.5rem 0 0.5rem 0.5rem;
+}
+
+.quantity-pending {
+  background: #e4f4fc;
+}
+.quantity-preparing {
+  background: #f59e0b;
+}
+.quantity-served {
+  background: #10b981;
 }
 
 .quantity-number {
-  font-size: 28px;
+  font-size: 2rem;
   font-weight: 900;
-  color: white;
+  color: #051b3a;
   line-height: 1;
 }
 
-.quantity-label {
-  font-size: 20px;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.7);
-  margin-left: 2px;
+.product-preparing .quantity-number,
+.product-served .quantity-number {
+  color: white;
 }
 
 /* ===== INFORMACIÓN DEL PRODUCTO ===== */
@@ -608,119 +648,125 @@ const availableActions = computed(() => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0.75rem;
+  padding: 0.75rem 0.75rem 0.75rem 0;
 }
 
-.product-name-row {
+.product-header-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 0.5rem;
 }
 
 .product-name {
-  font-size: 20px;
+  font-size: 1.1rem;
   font-weight: 700;
-  color: var(--color-gray-900);
+  color: #051b3a;
 }
 
-.product-status-badge {
-  padding: 4px 12px;
-  border-radius: 9999px;
-  font-size: 14px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+.product-status-chip {
+  padding: 0.25rem 0.75rem;
+  border-radius: 30px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
 }
 
-.badge-pending {
-  background: #e5e7eb;
-  color: var(--color-gray-600);
+.chip-icon {
+  font-size: 0.9rem;
 }
-.badge-preparing {
-  background: var(--color-warning);
+
+.chip-pending {
+  background: #e4f4fc;
+  color: #5d7a90;
+}
+.chip-preparing {
+  background: #f59e0b;
   color: white;
 }
-.badge-served {
-  background: var(--color-success);
+.chip-served {
+  background: #10b981;
   color: white;
 }
 
 /* ===== NOTAS ===== */
 .product-notes {
   background: #fff3cd;
-  border-left: 6px solid #ffc107;
-  padding: 12px 16px;
-  border-radius: var(--radius-sm);
+  border-left: 4px solid #f59e0b;
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 16px;
+  gap: 0.5rem;
+  font-size: 0.85rem;
 }
 
 .notes-icon {
-  font-size: 20px;
+  font-size: 1rem;
 }
 
 .notes-text {
   color: #856404;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.4;
 }
 
 /* ===== BOTONES DE ESTADO DEL PRODUCTO ===== */
 .product-actions {
   display: flex;
-  gap: 10px;
-  margin-top: 8px;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
   flex-wrap: wrap;
 }
 
 .btn-status {
   flex: 1;
-  min-width: 110px;
-  padding: 14px 12px;
-  border: 2px solid #e5e7eb;
+  min-width: 90px;
+  padding: 0.5rem 0.75rem;
+  border: 2px solid #e4f4fc;
   background: white;
-  border-radius: var(--radius-sm);
-  font-weight: 700;
-  font-size: 16px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.8rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 0.4rem;
   cursor: pointer;
-  transition: all 0.2s ease;
-  color: var(--color-gray-600);
+  transition: all 0.3s ease;
+  color: #5d7a90;
 }
 
 .status-icon {
-  font-size: 20px;
+  font-size: 1rem;
 }
 
 .btn-status:hover:not(:disabled) {
-  background: var(--color-gray-100);
-  border-color: #9ca3af;
-  transform: translateY(-1px);
+  background: #e4f4fc;
+  border-color: #609abb;
+  transform: translateY(-2px);
 }
 
 /* Estados activos */
 .btn-status-pending.active {
-  background: #6b7280;
-  border-color: #6b7280;
+  background: #609abb;
+  border-color: #609abb;
   color: white;
 }
 
 .btn-status-preparing.active {
-  background: var(--color-warning);
-  border-color: var(--color-warning);
+  background: #f59e0b;
+  border-color: #f59e0b;
   color: white;
 }
 
 .btn-status-served.active {
-  background: var(--color-success);
-  border-color: var(--color-success);
+  background: #10b981;
+  border-color: #10b981;
   color: white;
 }
 
@@ -732,42 +778,41 @@ const availableActions = computed(() => {
 
 /* ===== FOOTER ===== */
 .order-footer {
-  padding: 16px 20px;
-  background: #f3f4f6;
-  border-top: 2px solid #e5e7eb;
+  padding: 0.75rem 1.25rem;
+  background: #e4f4fc;
+  border-top: 2px solid rgba(96, 154, 187, 0.2);
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 15px;
-  color: var(--color-gray-600);
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #051b3a;
 }
 
 .footer-icon {
-  font-size: 18px;
+  font-size: 1rem;
 }
 
 .footer-text {
   font-weight: 500;
+  font-style: italic;
 }
 
 /* ===== RESPONSIVE ===== */
 @media (max-width: 768px) {
   .order-header {
     flex-direction: column;
-    gap: 16px;
+    align-items: stretch;
   }
 
   .order-header-right {
-    width: 100%;
-    align-items: flex-start;
+    align-items: stretch;
   }
 
   .order-actions {
-    width: 100%;
+    flex-direction: column;
   }
 
   .btn-action {
-    flex: 1;
     justify-content: center;
   }
 
@@ -776,8 +821,11 @@ const availableActions = computed(() => {
   }
 
   .product-quantity {
-    align-self: flex-start;
-    min-width: 60px;
+    margin: 0.5rem 0.5rem 0 0.5rem;
+  }
+
+  .product-info {
+    padding: 0 0.75rem 0.75rem 0.75rem;
   }
 
   .product-actions {
@@ -789,23 +837,36 @@ const availableActions = computed(() => {
   }
 }
 
-/* Optimizaciones para pantallas grandes */
-@media (min-width: 1400px) {
-  .product-item {
-    padding: 20px;
+@media (max-width: 480px) {
+  .order-badges {
+    flex-direction: column;
   }
 
-  .product-name {
-    font-size: 22px;
+  .badge {
+    width: 100%;
+    justify-content: center;
   }
 
-  .quantity-number {
-    font-size: 32px;
+  .order-meta {
+    flex-direction: column;
+    gap: 0.5rem;
   }
 
+  .product-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* ===== OPTIMIZACIONES TÁCTILES ===== */
+@media (hover: none) and (pointer: coarse) {
+  .btn-action,
   .btn-status {
-    padding: 16px 20px;
-    font-size: 18px;
+    padding: 0.75rem 1rem;
+  }
+
+  .product-item {
+    cursor: default;
   }
 }
 </style>

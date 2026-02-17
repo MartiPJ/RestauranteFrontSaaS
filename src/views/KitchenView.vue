@@ -1,31 +1,46 @@
 <!-- src/views/KitchenView.vue -->
 <template>
   <div class="kitchen-view">
+    <!-- Header -->
     <header class="kitchen-header">
       <div class="header-content">
-        <h1 class="title">
-          <span class="title-icon">🍳</span>
-          Cocina
-        </h1>
+        <div class="title-section">
+          <div class="title-icon">
+            <span class="icon-emoji">🍳</span>
+          </div>
+          <div class="title-text">
+            <h1>Cocina</h1>
+            <p class="subtitle">Gestión de órdenes en preparación</p>
+          </div>
+        </div>
+
         <div class="header-info">
           <div class="stats">
-            <div class="stat-item">
-              <span class="stat-label">Órdenes activas</span>
-              <span class="stat-value">{{ activeOrders.length }}</span>
+            <div class="stat-card">
+              <span class="stat-icon">📋</span>
+              <div class="stat-content">
+                <span class="stat-value">{{ activeOrders.length }}</span>
+                <span class="stat-label">Órdenes activas</span>
+              </div>
             </div>
-            <div class="stat-item">
-              <span class="stat-label">Items pendientes</span>
-              <span class="stat-value">{{ pendingItemsCount }}</span>
+            <div class="stat-card pending">
+              <span class="stat-icon">⏳</span>
+              <div class="stat-content">
+                <span class="stat-value">{{ pendingItemsCount }}</span>
+                <span class="stat-label">Items pendientes</span>
+              </div>
             </div>
           </div>
+
           <button @click="fetchOrders(false)" class="btn-refresh" :disabled="loading">
             <span class="refresh-icon" :class="{ spinning: loading || isRefreshing }">🔄</span>
-            <span>Actualizar</span>
+            <span class="refresh-text">Actualizar</span>
           </button>
         </div>
       </div>
 
-      <div class="filters">
+      <!-- Filtros -->
+      <div class="filters-section">
         <button
           v-for="filter in filters"
           :key="filter.value"
@@ -43,23 +58,24 @@
     </header>
 
     <!-- Loading State -->
-    <div v-if="loading && !orders.length" class="loading-container">
-      <div class="loading-spinner"></div>
+    <div v-if="loading && !orders.length" class="loading-state">
+      <div class="spinner"></div>
       <p class="loading-text">Cargando órdenes de cocina...</p>
     </div>
 
     <!-- Error State -->
-    <div v-else-if="error" class="error-container">
+    <div v-else-if="error" class="error-state">
       <div class="error-icon">⚠️</div>
       <h3 class="error-title">Error al cargar</h3>
       <p class="error-message">{{ error }}</p>
       <button @click="fetchOrders(false)" class="btn-retry">
-        <span>Reintentar</span>
+        <span class="btn-icon">↻</span>
+        Reintentar
       </button>
     </div>
 
     <!-- Empty State -->
-    <div v-else-if="!filteredOrders.length" class="empty-container">
+    <div v-else-if="!filteredOrders.length" class="empty-state">
       <div class="empty-icon">🍽️</div>
       <h3 class="empty-title">Todo al día</h3>
       <p class="empty-message">
@@ -81,10 +97,12 @@
 
   <!-- Toast Notification -->
   <Teleport to="body">
-    <div v-if="toast.show" class="toast" :class="`toast-${toast.type}`">
-      <span class="toast-icon">{{ toast.type === 'success' ? '✅' : '❌' }}</span>
-      <span class="toast-message">{{ toast.message }}</span>
-    </div>
+    <Transition name="toast">
+      <div v-if="toast.show" class="toast" :class="`toast-${toast.type}`">
+        <span class="toast-icon">{{ toast.type === 'success' ? '✅' : '❌' }}</span>
+        <span class="toast-message">{{ toast.message }}</span>
+      </div>
+    </Transition>
   </Teleport>
 </template>
 
@@ -315,96 +333,148 @@ onUnmounted(() => {
 /* ===== LAYOUT PRINCIPAL ===== */
 .kitchen-view {
   min-height: 100vh;
-  background: #f3f4f6;
-  padding: 24px;
+  background: #e4f4fc;
+  padding: 2rem;
 }
 
 /* ===== HEADER ===== */
 .kitchen-header {
   background: white;
-  border-radius: 20px;
-  padding: 24px;
-  margin-bottom: 24px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border-radius: 24px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 5px 15px rgba(5, 27, 58, 0.05);
+  border: 1px solid rgba(96, 154, 187, 0.1);
 }
 
 .header-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 1.5rem;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 1.5rem;
 }
 
-.title {
-  font-size: 32px;
-  font-weight: 800;
-  color: #111827;
-  margin: 0;
+.title-section {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 1rem;
 }
 
 .title-icon {
-  font-size: 36px;
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(145deg, #609abb, #e4f4fc);
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-emoji {
+  font-size: 2rem;
+}
+
+.title-text h1 {
+  margin: 0 0 0.25rem 0;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #051b3a;
+  letter-spacing: -0.5px;
+}
+
+.subtitle {
+  margin: 0;
+  color: #5d7a90;
+  font-size: 0.95rem;
 }
 
 .header-info {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 1.5rem;
   flex-wrap: wrap;
 }
 
+/* ===== STATS ===== */
 .stats {
   display: flex;
-  gap: 16px;
+  gap: 1rem;
 }
 
-.stat-item {
-  background: #f3f4f6;
-  padding: 8px 20px;
-  border-radius: 9999px;
+.stat-card {
+  background: #e4f4fc;
+  padding: 0.75rem 1.25rem;
+  border-radius: 100px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 0.75rem;
+  border: 1px solid rgba(96, 154, 187, 0.2);
+  transition: all 0.3s ease;
 }
 
-.stat-label {
-  font-size: 15px;
-  color: #6b7280;
-  font-weight: 500;
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(96, 154, 187, 0.2);
+}
+
+.stat-card.pending {
+  background: #fef3c7;
+  border-color: #f59e0b;
+}
+
+.stat-icon {
+  font-size: 1.25rem;
+}
+
+.stat-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .stat-value {
-  font-size: 22px;
-  font-weight: 800;
-  color: #111827;
-  background: white;
-  padding: 2px 12px;
-  border-radius: 9999px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #051b3a;
 }
 
+.stat-label {
+  font-size: 0.9rem;
+  color: #5d7a90;
+  font-weight: 500;
+}
+
+.stat-card.pending .stat-value {
+  color: #f59e0b;
+}
+
+.stat-card.pending .stat-label {
+  color: #b45309;
+}
+
+/* ===== BOTÓN REFRESH ===== */
 .btn-refresh {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  background: #3b82f6;
+  gap: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(145deg, #609abb, #5d7a90);
   color: white;
   border: none;
-  border-radius: 10px;
+  border-radius: 12px;
   font-weight: 600;
-  font-size: 15px;
+  font-size: 0.95rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  box-shadow: 0 5px 15px rgba(96, 154, 187, 0.3);
 }
 
 .btn-refresh:hover:not(:disabled) {
-  background: #2563eb;
+  background: linear-gradient(145deg, #5d7a90, #051b3a);
   transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(5, 27, 58, 0.3);
 }
 
 .btn-refresh:disabled {
@@ -413,11 +483,11 @@ onUnmounted(() => {
 }
 
 .refresh-icon {
-  font-size: 18px;
+  font-size: 1.2rem;
   transition: transform 0.3s ease;
 }
 
-.spinning {
+.refresh-icon.spinning {
   animation: spin 1s linear infinite;
 }
 
@@ -431,50 +501,52 @@ onUnmounted(() => {
 }
 
 /* ===== FILTROS ===== */
-.filters {
+.filters-section {
   display: flex;
-  gap: 12px;
+  gap: 0.75rem;
   flex-wrap: wrap;
 }
 
 .filter-btn {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 24px;
-  background: white;
-  border: 2px solid #e5e7eb;
+  gap: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  background: #e4f4fc;
+  border: 2px solid transparent;
   border-radius: 12px;
-  font-size: 16px;
+  font-size: 0.95rem;
   font-weight: 600;
-  color: #6b7280;
+  color: #5d7a90;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
   position: relative;
 }
 
 .filter-btn:hover {
-  border-color: #3b82f6;
-  background: #eff6ff;
+  border-color: #609abb;
+  background: white;
   transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(96, 154, 187, 0.15);
 }
 
 .filter-btn.active {
-  border-color: #3b82f6;
-  background: #3b82f6;
+  background: #609abb;
   color: white;
+  border-color: #609abb;
 }
 
 .filter-icon {
-  font-size: 18px;
+  font-size: 1.1rem;
 }
 
 .filter-badge {
   background: rgba(0, 0, 0, 0.1);
-  padding: 2px 10px;
-  border-radius: 9999px;
-  font-size: 14px;
+  padding: 0.2rem 0.6rem;
+  border-radius: 100px;
+  font-size: 0.8rem;
   font-weight: 700;
+  margin-left: 0.25rem;
 }
 
 .filter-btn.active .filter-badge {
@@ -482,75 +554,93 @@ onUnmounted(() => {
 }
 
 /* ===== ESTADOS DE CARGA ===== */
-.loading-container,
-.error-container,
-.empty-container {
+.loading-state,
+.error-state,
+.empty-state {
   background: white;
-  border-radius: 20px;
-  padding: 60px 24px;
+  border-radius: 24px;
+  padding: 4rem 2rem;
   text-align: center;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 5px 15px rgba(5, 27, 58, 0.05);
+  border: 1px solid rgba(96, 154, 187, 0.1);
 }
 
-.loading-spinner {
+.spinner {
   width: 60px;
   height: 60px;
-  border: 4px solid #e5e7eb;
-  border-top-color: #3b82f6;
+  border: 4px solid #e4f4fc;
+  border-top-color: #609abb;
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin: 0 auto 24px;
+  margin: 0 auto 1.5rem;
 }
 
 .loading-text {
-  font-size: 18px;
-  color: #6b7280;
+  font-size: 1.1rem;
+  color: #5d7a90;
   margin: 0;
 }
 
 .error-icon,
 .empty-icon {
-  font-size: 64px;
-  margin-bottom: 16px;
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  background: #e4f4fc;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
 }
 
 .error-title,
 .empty-title {
-  font-size: 24px;
+  font-size: 1.5rem;
   font-weight: 700;
-  color: #111827;
-  margin: 0 0 8px 0;
+  color: #051b3a;
+  margin: 0 0 0.5rem 0;
 }
 
 .error-message,
 .empty-message {
-  font-size: 16px;
-  color: #6b7280;
-  margin: 0 0 24px 0;
+  font-size: 1rem;
+  color: #5d7a90;
+  margin: 0 0 1.5rem 0;
 }
 
 .btn-retry {
-  padding: 12px 32px;
-  background: #3b82f6;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.875rem 2rem;
+  background: linear-gradient(145deg, #609abb, #5d7a90);
   color: white;
   border: none;
-  border-radius: 10px;
-  font-size: 16px;
+  border-radius: 12px;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+  box-shadow: 0 5px 15px rgba(96, 154, 187, 0.3);
 }
 
 .btn-retry:hover {
-  background: #2563eb;
+  background: linear-gradient(145deg, #5d7a90, #051b3a);
   transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(5, 27, 58, 0.3);
+}
+
+.btn-icon {
+  font-size: 1.1rem;
 }
 
 /* ===== GRID DE ÓRDENES ===== */
 .orders-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(480px, 1fr));
+  gap: 1.5rem;
   animation: fadeIn 0.3s ease;
 }
 
@@ -568,35 +658,38 @@ onUnmounted(() => {
 /* ===== TOAST ===== */
 .toast {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
+  bottom: 2rem;
+  right: 2rem;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px 24px;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
   background: white;
   border-radius: 12px;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 15px 30px rgba(5, 27, 58, 0.2);
   z-index: 1000;
   animation: slideIn 0.3s ease;
+  border-left: 4px solid;
 }
 
 .toast-success {
-  background: #10b981;
+  background: linear-gradient(145deg, #10b981, #059669);
   color: white;
+  border-left-color: #10b981;
 }
 
 .toast-error {
-  background: #ef4444;
+  background: linear-gradient(145deg, #ef4444, #dc2626);
   color: white;
+  border-left-color: #ef4444;
 }
 
 .toast-icon {
-  font-size: 20px;
+  font-size: 1.25rem;
 }
 
 .toast-message {
-  font-size: 16px;
+  font-size: 0.95rem;
   font-weight: 600;
 }
 
@@ -611,6 +704,17 @@ onUnmounted(() => {
   }
 }
 
+.toast-enter-active,
+.toast-leave-active {
+  transition: all 0.3s ease;
+}
+
+.toast-enter-from,
+.toast-leave-to {
+  opacity: 0;
+  transform: translateX(100%);
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 1024px) {
   .orders-grid {
@@ -620,11 +724,11 @@ onUnmounted(() => {
 
 @media (max-width: 768px) {
   .kitchen-view {
-    padding: 12px;
+    padding: 1rem;
   }
 
   .kitchen-header {
-    padding: 16px;
+    padding: 1rem;
   }
 
   .header-content {
@@ -632,24 +736,43 @@ onUnmounted(() => {
     align-items: stretch;
   }
 
-  .title {
-    font-size: 28px;
+  .title-section {
+    justify-content: center;
+  }
+
+  .title-icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .icon-emoji {
+    font-size: 1.5rem;
+  }
+
+  .title-text h1 {
+    font-size: 1.5rem;
   }
 
   .header-info {
     flex-direction: column;
-    align-items: stretch;
   }
 
   .stats {
-    justify-content: space-between;
+    width: 100%;
+    flex-direction: column;
   }
 
-  .btn-refresh {
+  .stat-card {
+    width: 100%;
     justify-content: center;
   }
 
-  .filters {
+  .btn-refresh {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .filters-section {
     flex-direction: column;
   }
 
@@ -663,22 +786,25 @@ onUnmounted(() => {
   }
 
   .toast {
-    left: 12px;
-    right: 12px;
-    bottom: 12px;
+    left: 1rem;
+    right: 1rem;
+    bottom: 1rem;
   }
 }
 
-/* Optimizaciones para pantallas táctiles */
+@media (max-width: 480px) {
+  .stat-content {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+}
+
+/* ===== OPTIMIZACIONES TÁCTILES ===== */
 @media (hover: none) and (pointer: coarse) {
   .filter-btn,
   .btn-refresh,
   .btn-retry {
-    padding: 14px 24px;
-  }
-
-  .order-card {
-    cursor: default;
+    padding: 1rem 1.5rem;
   }
 }
 </style>

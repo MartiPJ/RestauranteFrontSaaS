@@ -1,3 +1,4 @@
+<!-- src/views/OrdersView.vue -->
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useOrderStore } from '@/stores/orderStore'
@@ -175,104 +176,100 @@ const handleUpdateItemStatus = async (itemId: string, status: OrderItemStatus) =
 
 <template>
   <div class="orders-view">
+    <!-- Header con diseño mejorado -->
     <div class="header">
       <div class="header-content">
-        <h1>Gestión de Órdenes</h1>
+        <div class="title-section">
+          <h1>Gestión de Órdenes</h1>
+          <p class="subtitle">Administra y da seguimiento a todas las órdenes</p>
+        </div>
         <div class="header-actions">
           <button @click="openTakeoutOrderModal" class="btn-add takeout">
-            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"
-              />
-            </svg>
-            Para Llevar
+            <span class="btn-icon">🥡</span>
+            <span class="btn-text">Para Llevar</span>
           </button>
         </div>
       </div>
 
-      <OrderDetailModal
-        :show="showOrderDetailModal"
-        :order-id="selectedOrderId"
-        @close="showOrderDetailModal = false"
-        @update-item-status="handleUpdateItemStatus"
-      />
-
-      <ConfirmationModal
-        :show="showDeleteConfirmation"
-        title="¿Eliminar orden?"
-        message="¿Estás seguro de eliminar esta orden? Esta acción no se puede deshacer."
-        confirm-text="Sí, eliminar"
-        cancel-text="Cancelar"
-        type="danger"
-        @confirm="confirmDeleteOrder"
-        @cancel="showDeleteConfirmation = false"
-      />
-
-      <ConfirmationModal
-        :show="showCancelConfirmation"
-        title="¿Cancelar orden?"
-        message="¿Estás seguro de cancelar esta orden?"
-        confirm-text="Sí, cancelar"
-        cancel-text="No"
-        type="warning"
-        @confirm="confirmCancelOrder"
-        @cancel="showCancelConfirmation = false"
-      />
-
+      <!-- Toast notifications -->
       <Transition name="toast">
         <div v-if="showToast" :class="['toast', toastType]">
+          <span class="toast-icon">{{ toastType === 'success' ? '✓' : '✗' }}</span>
           {{ toastMessage }}
         </div>
       </Transition>
 
+      <!-- Stats Grid -->
       <div class="stats-grid">
         <div class="stat-card open">
-          <div class="stat-value">
-            {{ orderStore.orders.filter((o) => o.status === OrderStatus.OPEN).length }}
+          <div class="stat-icon">📋</div>
+          <div class="stat-content">
+            <div class="stat-value">
+              {{ orderStore.orders.filter((o) => o.status === OrderStatus.OPEN).length }}
+            </div>
+            <div class="stat-label">Abiertas</div>
           </div>
-          <div class="stat-label">Órdenes Abiertas</div>
         </div>
         <div class="stat-card in-progress">
-          <div class="stat-value">
-            {{ orderStore.orders.filter((o) => o.status === OrderStatus.IN_PROGRESS).length }}
+          <div class="stat-icon">⚙️</div>
+          <div class="stat-content">
+            <div class="stat-value">
+              {{ orderStore.orders.filter((o) => o.status === OrderStatus.IN_PROGRESS).length }}
+            </div>
+            <div class="stat-label">En Progreso</div>
           </div>
-          <div class="stat-label">En Progreso</div>
         </div>
         <div class="stat-card ready">
-          <div class="stat-value">
-            {{ orderStore.orders.filter((o) => o.status === OrderStatus.READY).length }}
+          <div class="stat-icon">✅</div>
+          <div class="stat-content">
+            <div class="stat-value">
+              {{ orderStore.orders.filter((o) => o.status === OrderStatus.READY).length }}
+            </div>
+            <div class="stat-label">Listas</div>
           </div>
-          <div class="stat-label">Listas</div>
         </div>
         <div class="stat-card delivered">
-          <div class="stat-value">
-            {{ orderStore.orders.filter((o) => o.status === OrderStatus.DELIVERED).length }}
+          <div class="stat-icon">🚚</div>
+          <div class="stat-content">
+            <div class="stat-value">
+              {{ orderStore.orders.filter((o) => o.status === OrderStatus.DELIVERED).length }}
+            </div>
+            <div class="stat-label">Entregadas</div>
           </div>
-          <div class="stat-label">Entregadas</div>
         </div>
         <div class="stat-card paid">
-          <div class="stat-value">
-            {{ orderStore.orders.filter((o) => o.status === OrderStatus.PAID).length }}
+          <div class="stat-icon">💰</div>
+          <div class="stat-content">
+            <div class="stat-value">
+              {{ orderStore.orders.filter((o) => o.status === OrderStatus.PAID).length }}
+            </div>
+            <div class="stat-label">Pagadas</div>
           </div>
-          <div class="stat-label">Pagadas</div>
         </div>
         <div class="stat-card cancelled">
-          <div class="stat-value">
-            {{ orderStore.orders.filter((o) => o.status === OrderStatus.CANCELLED).length }}
+          <div class="stat-icon">❌</div>
+          <div class="stat-content">
+            <div class="stat-value">
+              {{ orderStore.orders.filter((o) => o.status === OrderStatus.CANCELLED).length }}
+            </div>
+            <div class="stat-label">Canceladas</div>
           </div>
-          <div class="stat-label">Canceladas</div>
         </div>
       </div>
     </div>
 
+    <!-- Mesas Disponibles Section -->
     <div class="available-tables-section">
-      <h2>Mesas Disponibles - Tomar Orden</h2>
-      <div v-if="tableStore.availableTables.length === 0" class="empty-state">
+      <div class="section-header">
+        <h2>Mesas Disponibles</h2>
+        <span class="section-badge">{{ tableStore.availableTables.length }} mesas</span>
+      </div>
+
+      <div v-if="tableStore.availableTables.length === 0" class="empty-state small">
+        <span class="empty-icon">🪑</span>
         <p>No hay mesas disponibles en este momento</p>
       </div>
+
       <div v-else class="tables-grid">
         <div
           v-for="table in tableStore.availableTables"
@@ -280,26 +277,28 @@ const handleUpdateItemStatus = async (itemId: string, status: OrderItemStatus) =
           class="table-quick-card"
           @click="openTableOrderModal(table)"
         >
-          <h3>Mesa {{ table.tableNumber }}</h3>
-          <p>Capacidad: {{ table.capacity }} personas</p>
+          <div class="table-number">
+            <span class="table-icon">🍽️</span>
+            <h3>Mesa {{ table.tableNumber }}</h3>
+          </div>
+          <p class="table-capacity">
+            🪑 {{ table.capacity }} {{ table.capacity === 1 ? 'persona' : 'personas' }}
+          </p>
           <div class="quick-action">
-            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
-            Tomar Orden
+            <span class="action-icon">➕</span>
+            <span class="action-text">Tomar Orden</span>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="divider"></div>
+    <!-- Divisor decorativo -->
+    <div class="divider">
+      <span class="divider-text">Órdenes Activas</span>
+    </div>
 
-    <div class="filters">
+    <!-- Filtros -->
+    <div class="filters-section">
       <div class="search-box">
         <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
@@ -312,7 +311,7 @@ const handleUpdateItemStatus = async (itemId: string, status: OrderItemStatus) =
         <input
           v-model="searchQuery"
           type="text"
-          placeholder="Buscar orden o mesa..."
+          placeholder="Buscar por número de orden o mesa..."
           class="search-input"
         />
       </div>
@@ -322,41 +321,40 @@ const handleUpdateItemStatus = async (itemId: string, status: OrderItemStatus) =
           @click="handleFilterChange('all')"
           :class="['filter-btn', { active: filterStatus === 'all' }]"
         >
+          <span class="filter-dot all"></span>
           Todas
         </button>
         <button
           @click="handleFilterChange('open')"
           :class="['filter-btn', 'open', { active: filterStatus === 'open' }]"
         >
+          <span class="filter-dot open"></span>
           Abiertas
         </button>
         <button
           @click="handleFilterChange('cancelled')"
           :class="['filter-btn', 'cancelled', { active: filterStatus === 'cancelled' }]"
         >
+          <span class="filter-dot cancelled"></span>
           Canceladas
         </button>
       </div>
     </div>
 
+    <!-- Estados de carga y error -->
     <div v-if="orderStore.loading" class="loading">
       <div class="spinner"></div>
       <p>Cargando órdenes...</p>
     </div>
 
     <div v-else-if="orderStore.error" class="error-message">
+      <span class="error-icon">⚠️</span>
       {{ orderStore.error }}
     </div>
 
+    <!-- Empty State -->
     <div v-else-if="filteredOrders.length === 0" class="empty-state">
-      <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-        />
-      </svg>
+      <div class="empty-icon">📝</div>
       <h3>No hay órdenes</h3>
       <p>
         {{
@@ -365,8 +363,12 @@ const handleUpdateItemStatus = async (itemId: string, status: OrderItemStatus) =
             : 'No hay órdenes en este momento'
         }}
       </p>
+      <button v-if="searchQuery" @click="searchQuery = ''" class="btn-clear">
+        Limpiar búsqueda
+      </button>
     </div>
 
+    <!-- Orders Grid -->
     <div v-else class="orders-grid">
       <OrderCard
         v-for="order in filteredOrders"
@@ -377,6 +379,36 @@ const handleUpdateItemStatus = async (itemId: string, status: OrderItemStatus) =
         @delete="handleDelete"
       />
     </div>
+
+    <!-- Modales -->
+    <OrderDetailModal
+      :show="showOrderDetailModal"
+      :order-id="selectedOrderId"
+      @close="showOrderDetailModal = false"
+      @update-item-status="handleUpdateItemStatus"
+    />
+
+    <ConfirmationModal
+      :show="showDeleteConfirmation"
+      title="¿Eliminar orden?"
+      message="¿Estás seguro de eliminar esta orden? Esta acción no se puede deshacer."
+      confirm-text="Sí, eliminar"
+      cancel-text="Cancelar"
+      type="danger"
+      @confirm="confirmDeleteOrder"
+      @cancel="showDeleteConfirmation = false"
+    />
+
+    <ConfirmationModal
+      :show="showCancelConfirmation"
+      title="¿Cancelar orden?"
+      message="¿Estás seguro de cancelar esta orden?"
+      confirm-text="Sí, cancelar"
+      cancel-text="No"
+      type="warning"
+      @confirm="confirmCancelOrder"
+      @cancel="showCancelConfirmation = false"
+    />
 
     <MenuModal
       :show="showMenuModal"
@@ -390,143 +422,191 @@ const handleUpdateItemStatus = async (itemId: string, status: OrderItemStatus) =
 
 <style scoped>
 .orders-view {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 24px;
+  min-height: 100vh;
+  background-color: #e4f4fc;
+  padding: 2rem;
 }
 
+/* Header Styles */
 .header {
-  margin-bottom: 32px;
+  margin-bottom: 2rem;
 }
 
 .header-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
-.header-content h1 {
-  font-size: 32px;
+.title-section h1 {
+  font-size: 2.2rem;
   font-weight: 700;
-  color: #1f2937;
+  color: #051b3a;
+  margin: 0 0 0.25rem 0;
+  letter-spacing: -0.5px;
+}
+
+.subtitle {
+  color: #5d7a90;
+  font-size: 1rem;
   margin: 0;
 }
 
 .header-actions {
   display: flex;
-  gap: 12px;
+  gap: 1rem;
 }
 
 .btn-add {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
-  background-color: #3b82f6;
-  color: white;
+  gap: 0.75rem;
+  padding: 0.875rem 1.75rem;
   border: none;
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: 12px;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-add:hover {
-  background-color: #2563eb;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  transition: all 0.3s ease;
 }
 
 .btn-add.takeout {
-  background-color: #f59e0b;
+  background: linear-gradient(145deg, #f59e0b, #d97706);
+  color: white;
+  box-shadow: 0 5px 15px rgba(245, 158, 11, 0.3);
 }
 
 .btn-add.takeout:hover {
-  background-color: #d97706;
+  background: linear-gradient(145deg, #d97706, #b45309);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(245, 158, 11, 0.4);
 }
 
-.icon {
-  width: 20px;
-  height: 20px;
+.btn-icon {
+  font-size: 1.2rem;
 }
 
+/* Stats Grid */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
 }
 
 .stat-card {
   background: white;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border-left: 4px solid #3b82f6;
+  padding: 1.25rem;
+  border-radius: 16px;
+  box-shadow: 0 5px 15px rgba(5, 27, 58, 0.05);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: transform 0.3s ease;
+  border: 1px solid rgba(96, 154, 187, 0.1);
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(5, 27, 58, 0.1);
 }
 
 .stat-card.open {
-  border-left-color: #10b981;
+  border-left: 4px solid #10b981;
 }
-
-.stat-card.cancelled {
-  border-left-color: #ef4444;
-}
-
 .stat-card.in-progress {
-  border-left-color: #3b82f6;
+  border-left: 4px solid #609abb;
 }
-
 .stat-card.ready {
-  border-left-color: #f59e0b;
+  border-left: 4px solid #f59e0b;
 }
-
 .stat-card.delivered {
-  border-left-color: #8b5cf6;
+  border-left: 4px solid #8b5cf6;
+}
+.stat-card.paid {
+  border-left: 4px solid #5d7a90;
+}
+.stat-card.cancelled {
+  border-left: 4px solid #ef4444;
 }
 
-.stat-card.paid {
-  border-left-color: #6b7280;
+.stat-icon {
+  font-size: 2rem;
+  background: #e4f4fc;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stat-content {
+  flex: 1;
 }
 
 .stat-value {
-  font-size: 32px;
+  font-size: 1.8rem;
   font-weight: 700;
-  color: #1f2937;
-  margin-bottom: 4px;
+  color: #051b3a;
+  line-height: 1.2;
 }
 
 .stat-label {
-  font-size: 14px;
-  color: #6b7280;
+  font-size: 0.85rem;
+  color: #5d7a90;
   font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
+/* Available Tables Section */
 .available-tables-section {
-  margin-bottom: 32px;
+  background: white;
+  border-radius: 20px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 5px 15px rgba(5, 27, 58, 0.05);
 }
 
-.available-tables-section h2 {
-  font-size: 20px;
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+}
+
+.section-header h2 {
+  font-size: 1.3rem;
   font-weight: 600;
-  color: #1f2937;
-  margin: 0 0 16px 0;
+  color: #051b3a;
+  margin: 0;
+}
+
+.section-badge {
+  background: #e4f4fc;
+  color: #609abb;
+  padding: 0.25rem 0.75rem;
+  border-radius: 30px;
+  font-size: 0.85rem;
+  font-weight: 600;
 }
 
 .tables-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 16px;
+  gap: 1rem;
 }
 
 .table-quick-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(145deg, #609abb, #5d7a90);
   color: white;
-  border-radius: 12px;
-  padding: 20px;
+  border-radius: 16px;
+  padding: 1.25rem;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   position: relative;
   overflow: hidden;
 }
@@ -540,7 +620,7 @@ const handleUpdateItemStatus = async (itemId: string, status: OrderItemStatus) =
   height: 100%;
   background: rgba(255, 255, 255, 0.1);
   transform: translateX(-100%);
-  transition: transform 0.3s;
+  transition: transform 0.3s ease;
 }
 
 .table-quick-card:hover::before {
@@ -548,41 +628,87 @@ const handleUpdateItemStatus = async (itemId: string, status: OrderItemStatus) =
 }
 
 .table-quick-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 12px 25px rgba(5, 27, 58, 0.3);
+}
+
+.table-number {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.table-icon {
+  font-size: 1.2rem;
 }
 
 .table-quick-card h3 {
-  font-size: 20px;
+  font-size: 1.2rem;
   font-weight: 600;
-  margin: 0 0 8px 0;
+  margin: 0;
 }
 
-.table-quick-card p {
-  font-size: 14px;
+.table-capacity {
+  font-size: 0.9rem;
   opacity: 0.9;
-  margin: 0 0 12px 0;
+  margin: 0 0 1rem 0;
 }
 
 .quick-action {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
+  gap: 0.5rem;
+  font-size: 0.9rem;
   font-weight: 600;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 30px;
+  justify-content: center;
 }
 
+/* Divider */
 .divider {
-  height: 1px;
-  background: #e5e7eb;
-  margin: 32px 0;
+  position: relative;
+  text-align: center;
+  margin: 2rem 0;
 }
 
-.filters {
+.divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #609abb, #b4cbd8, #609abb, transparent);
+  transform: translateY(-50%);
+}
+
+.divider-text {
+  background: #e4f4fc;
+  padding: 0.5rem 1.5rem;
+  color: #609abb;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-radius: 30px;
+  position: relative;
+  border: 2px solid white;
+}
+
+/* Filters Section */
+.filters-section {
+  background: white;
+  border-radius: 16px;
+  padding: 1.25rem;
+  margin-bottom: 2rem;
   display: flex;
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: 1.5rem;
   flex-wrap: wrap;
+  align-items: center;
+  box-shadow: 0 5px 15px rgba(5, 27, 58, 0.05);
 }
 
 .search-box {
@@ -593,91 +719,123 @@ const handleUpdateItemStatus = async (itemId: string, status: OrderItemStatus) =
 
 .search-icon {
   position: absolute;
-  left: 12px;
+  left: 14px;
   top: 50%;
   transform: translateY(-50%);
-  width: 20px;
-  height: 20px;
-  color: #9ca3af;
+  width: 18px;
+  height: 18px;
+  color: #b4cbd8;
 }
 
 .search-input {
   width: 100%;
-  padding: 10px 12px 10px 40px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 14px;
-  box-sizing: border-box;
+  padding: 0.875rem 1rem 0.875rem 3rem;
+  border: 2px solid #e4f4fc;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  background: #e4f4fc;
+  color: #051b3a;
 }
 
 .search-input:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: #609abb;
+  background: white;
+  box-shadow: 0 0 0 4px rgba(96, 154, 187, 0.1);
 }
 
 .filter-buttons {
   display: flex;
-  gap: 8px;
+  gap: 0.5rem;
   flex-wrap: wrap;
 }
 
 .filter-btn {
-  padding: 10px 20px;
-  border: 2px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border: 2px solid #e4f4fc;
   background: white;
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: 30px;
+  font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
-  color: #6b7280;
+  transition: all 0.3s ease;
+  color: #5d7a90;
+}
+
+.filter-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.filter-dot.all {
+  background: #609abb;
+}
+.filter-dot.open {
+  background: #10b981;
+}
+.filter-dot.cancelled {
+  background: #ef4444;
 }
 
 .filter-btn:hover {
-  border-color: #d1d5db;
-  background-color: #f9fafb;
+  border-color: #609abb;
+  background: #e4f4fc;
+  color: #051b3a;
 }
 
 .filter-btn.active {
-  background-color: #3b82f6;
+  background: #609abb;
   color: white;
-  border-color: #3b82f6;
+  border-color: #609abb;
+}
+
+.filter-btn.active .filter-dot {
+  background: white;
 }
 
 .filter-btn.open.active {
-  background-color: #10b981;
+  background: #10b981;
   border-color: #10b981;
 }
 
 .filter-btn.cancelled.active {
-  background-color: #ef4444;
+  background: #ef4444;
   border-color: #ef4444;
 }
 
+/* Orders Grid */
 .orders-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 20px;
+  gap: 1.5rem;
 }
 
+/* Loading State */
 .loading {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 20px;
-  color: #6b7280;
+  padding: 4rem 2rem;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 5px 15px rgba(5, 27, 58, 0.05);
 }
 
 .spinner {
   width: 48px;
   height: 48px;
-  border: 4px solid #e5e7eb;
-  border-top-color: #3b82f6;
+  border: 4px solid #e4f4fc;
+  border-top-color: #609abb;
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin-bottom: 16px;
+  margin-bottom: 1rem;
 }
 
 @keyframes spin {
@@ -686,93 +844,111 @@ const handleUpdateItemStatus = async (itemId: string, status: OrderItemStatus) =
   }
 }
 
+/* Error Message */
 .error-message {
-  background-color: #fee2e2;
+  background: #fee2e2;
   color: #dc2626;
-  padding: 16px;
-  border-radius: 8px;
+  padding: 1.25rem;
+  border-radius: 12px;
   text-align: center;
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
+/* Empty State */
 .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 20px;
+  padding: 4rem 2rem;
+  background: white;
+  border-radius: 20px;
   text-align: center;
+  box-shadow: 0 5px 15px rgba(5, 27, 58, 0.05);
+}
+
+.empty-state.small {
+  padding: 2rem;
 }
 
 .empty-icon {
-  width: 64px;
-  height: 64px;
-  color: #d1d5db;
-  margin-bottom: 16px;
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  background: #e4f4fc;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .empty-state h3 {
-  font-size: 20px;
-  color: #374151;
-  margin: 0 0 8px 0;
+  font-size: 1.3rem;
+  color: #051b3a;
+  margin: 0 0 0.5rem 0;
 }
 
 .empty-state p {
-  color: #6b7280;
-  margin: 0;
+  color: #5d7a90;
+  margin: 0 0 1.5rem 0;
 }
 
-@media (max-width: 768px) {
-  .orders-view {
-    padding: 16px;
-  }
-
-  .header-content {
-    flex-direction: column;
-    gap: 16px;
-    align-items: stretch;
-  }
-
-  .header-actions {
-    flex-direction: column;
-  }
-
-  .stats-grid {
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  }
-
-  .filters {
-    flex-direction: column;
-  }
-
-  .orders-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .tables-grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  }
+.btn-clear {
+  padding: 0.75rem 2rem;
+  background: #e4f4fc;
+  color: #609abb;
+  border: 2px solid #609abb;
+  border-radius: 30px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-/* Toast styles */
+.btn-clear:hover {
+  background: #609abb;
+  color: white;
+}
+
+/* Toast */
 .toast {
   position: fixed;
-  bottom: 20px;
-  right: 20px;
-  padding: 14px 20px;
-  border-radius: 10px;
+  bottom: 30px;
+  right: 30px;
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
   color: white;
   font-weight: 600;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 15px 30px rgba(5, 27, 58, 0.2);
   z-index: 2000;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  animation: slideIn 0.3s ease;
 }
 
 .toast.success {
-  background-color: #10b981;
+  background: linear-gradient(145deg, #10b981, #059669);
 }
 
 .toast.error {
-  background-color: #ef4444;
+  background: linear-gradient(145deg, #ef4444, #dc2626);
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
 .toast-enter-active,
@@ -783,6 +959,84 @@ const handleUpdateItemStatus = async (itemId: string, status: OrderItemStatus) =
 .toast-enter-from,
 .toast-leave-to {
   opacity: 0;
-  transform: translateY(20px);
+  transform: translateX(100%);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .orders-view {
+    padding: 1rem;
+  }
+
+  .title-section h1 {
+    font-size: 1.8rem;
+  }
+
+  .header-content {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .header-actions {
+    width: 100%;
+  }
+
+  .btn-add {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+
+  .filters-section {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .filter-buttons {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .filter-btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .orders-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tables-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+
+  .toast {
+    left: 20px;
+    right: 20px;
+    bottom: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .stat-card {
+    padding: 1rem;
+  }
+
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 1.5rem;
+  }
+
+  .stat-value {
+    font-size: 1.4rem;
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
+  }
 }
 </style>

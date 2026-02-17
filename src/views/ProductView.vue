@@ -1,9 +1,10 @@
+<!-- src/views/ProductsView.vue -->
 <template>
   <div class="products-view">
     <div class="container">
       <!-- Header -->
       <div class="page-header">
-        <div>
+        <div class="title-section">
           <h1>Gestión de Productos</h1>
           <p class="subtitle">Administra el menú de tu restaurante</p>
         </div>
@@ -26,11 +27,34 @@
         </button>
       </div>
 
+      <!-- Stats Cards -->
+      <div class="stats-grid">
+        <div class="stat-card total">
+          <div class="stat-icon">📦</div>
+          <div class="stat-content">
+            <div class="stat-value">{{ store.totalItems }}</div>
+            <div class="stat-label">Total Productos</div>
+          </div>
+        </div>
+        <div class="stat-card categories">
+          <div class="stat-icon">📋</div>
+          <div class="stat-content">
+            <div class="stat-value">{{ store.categories.length }}</div>
+            <div class="stat-label">Categorías</div>
+          </div>
+        </div>
+      </div>
+
       <!-- Controles -->
-      <div class="controls">
+      <div class="controls-section">
         <div class="items-per-page">
-          <label>Mostrar:</label>
-          <select v-model.number="selectedItemsPerPage" @change="handleItemsPerPageChange">
+          <label for="itemsPerPage">Mostrar:</label>
+          <select
+            id="itemsPerPage"
+            v-model.number="selectedItemsPerPage"
+            @change="handleItemsPerPageChange"
+            class="per-page-select"
+          >
             <option :value="5">5 productos</option>
             <option :value="10">10 productos</option>
             <option :value="20">20 productos</option>
@@ -38,35 +62,26 @@
         </div>
 
         <div class="results-info">
-          Mostrando {{ startItem }} - {{ endItem }} de {{ store.totalItems }} productos
+          <span class="results-badge">
+            {{ startItem }} - {{ endItem }} de {{ store.totalItems }}
+          </span>
         </div>
       </div>
 
       <!-- Loading -->
-      <div v-if="store.loading" class="loading">
+      <div v-if="store.loading" class="loading-state">
         <div class="spinner"></div>
         <p>Cargando productos...</p>
       </div>
 
       <!-- Error -->
       <div v-else-if="store.error" class="error-message">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="12" y1="8" x2="12" y2="12"></line>
-          <line x1="12" y1="16" x2="12.01" y2="16"></line>
-        </svg>
+        <span class="error-icon">⚠️</span>
         <p>{{ store.error }}</p>
-        <button class="btn btn-primary" @click="loadData">Reintentar</button>
+        <button class="btn btn-primary" @click="loadData">
+          <span class="btn-icon">↻</span>
+          Reintentar
+        </button>
       </div>
 
       <!-- Products Grid -->
@@ -82,27 +97,23 @@
 
       <!-- Empty State -->
       <div v-else class="empty-state">
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="64"
-          height="64"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M3 3h18v18H3zM3 9h18M9 21V9"></path>
-        </svg>
+        <div class="empty-icon">🍽️</div>
         <h3>No hay productos</h3>
         <p>Comienza agregando tu primer producto al menú</p>
-        <button class="btn btn-primary" @click="openCreateModal">Agregar Producto</button>
+        <button class="btn btn-primary" @click="openCreateModal">
+          <span class="btn-icon">➕</span>
+          Agregar Producto
+        </button>
       </div>
 
       <!-- Pagination -->
-      <div v-if="store.totalPages > 1" class="pagination">
-        <button class="btn-pagination" :disabled="!store.hasPrevPage" @click="store.prevPage()">
+      <div v-if="store.totalPages > 1" class="pagination-section">
+        <button
+          class="pagination-btn"
+          :class="{ disabled: !store.hasPrevPage }"
+          :disabled="!store.hasPrevPage"
+          @click="store.prevPage()"
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="20"
@@ -116,7 +127,7 @@
           >
             <polyline points="15 18 9 12 15 6"></polyline>
           </svg>
-          Anterior
+          <span>Anterior</span>
         </button>
 
         <div class="page-numbers">
@@ -124,15 +135,23 @@
             v-for="page in visiblePages"
             :key="page"
             class="page-number"
-            :class="{ active: page === store.currentPage }"
-            @click="store.goToPage(page)"
+            :class="{
+              active: page === store.currentPage,
+              ellipsis: page === -1,
+            }"
+            @click="page !== -1 && store.goToPage(page)"
           >
-            {{ page }}
+            {{ page === -1 ? '...' : page }}
           </button>
         </div>
 
-        <button class="btn-pagination" :disabled="!store.hasNextPage" @click="store.nextPage()">
-          Siguiente
+        <button
+          class="pagination-btn"
+          :class="{ disabled: !store.hasNextPage }"
+          :disabled="!store.hasNextPage"
+          @click="store.nextPage()"
+        >
+          <span>Siguiente</span>
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="20"
@@ -160,31 +179,25 @@
       @close="closeModal"
     />
 
-    <!-- Delete Confirmation -->
+    <!-- Delete Confirmation Modal -->
     <div v-if="showDeleteConfirm" class="modal-overlay" @click.self="cancelDelete">
-      <div class="confirm-dialog">
-        <div class="confirm-icon">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="48"
-            height="48"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="8" x2="12" y2="12"></line>
-            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-          </svg>
+      <div class="confirm-modal">
+        <div class="confirm-header">
+          <span class="confirm-icon">⚠️</span>
+          <h3>¿Eliminar producto?</h3>
         </div>
-        <h3>¿Eliminar producto?</h3>
-        <p>Esta acción no se puede deshacer. El producto será eliminado permanentemente.</p>
+        <p class="confirm-message">
+          Esta acción no se puede deshacer. El producto será eliminado permanentemente del menú.
+        </p>
         <div class="confirm-actions">
-          <button class="btn btn-cancel" @click="cancelDelete">Cancelar</button>
-          <button class="btn btn-danger" @click="handleDelete">Eliminar</button>
+          <button class="btn btn-cancel" @click="cancelDelete">
+            <span class="btn-icon">✕</span>
+            Cancelar
+          </button>
+          <button class="btn btn-danger" @click="handleDelete">
+            <span class="btn-icon">🗑️</span>
+            Eliminar
+          </button>
         </div>
       </div>
     </div>
@@ -314,94 +327,182 @@ onMounted(() => {
 <style scoped>
 .products-view {
   min-height: 100vh;
-  background: #f9fafb;
-  padding: 24px 0;
+  background-color: #e4f4fc;
+  padding: 2rem 0;
 }
 
 .container {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 1.5rem;
 }
 
+/* Page Header */
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 32px;
+  margin-bottom: 2rem;
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 1rem;
 }
 
-.page-header h1 {
-  margin: 0;
-  font-size: 32px;
-  font-weight: 800;
-  color: #111827;
+.title-section h1 {
+  margin: 0 0 0.25rem 0;
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #051b3a;
+  letter-spacing: -0.5px;
 }
 
 .subtitle {
-  margin: 4px 0 0 0;
-  color: #6b7280;
-  font-size: 16px;
+  margin: 0;
+  color: #5d7a90;
+  font-size: 1rem;
 }
 
-.controls {
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: white;
+  padding: 1.25rem;
+  border-radius: 16px;
+  box-shadow: 0 5px 15px rgba(5, 27, 58, 0.05);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: transform 0.3s ease;
+  border: 1px solid rgba(96, 154, 187, 0.1);
+}
+
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(5, 27, 58, 0.1);
+}
+
+.stat-card.total {
+  border-left: 4px solid #609abb;
+}
+
+.stat-card.categories {
+  border-left: 4px solid #10b981;
+}
+
+.stat-icon {
+  font-size: 2rem;
+  background: #e4f4fc;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stat-content {
+  flex: 1;
+}
+
+.stat-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #051b3a;
+  line-height: 1.2;
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  color: #5d7a90;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Controls Section */
+.controls-section {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
-  padding: 16px;
+  margin-bottom: 2rem;
+  padding: 1rem 1.5rem;
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 5px 15px rgba(5, 27, 58, 0.05);
   flex-wrap: wrap;
-  gap: 16px;
+  gap: 1rem;
 }
 
 .items-per-page {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 1rem;
 }
 
 .items-per-page label {
   font-weight: 600;
-  color: #374151;
-  font-size: 14px;
+  color: #051b3a;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.items-per-page select {
-  padding: 8px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 14px;
+.per-page-select {
+  padding: 0.5rem 2rem 0.5rem 1rem;
+  border: 2px solid #e4f4fc;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  background: #e4f4fc;
+  color: #051b3a;
   cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.per-page-select:focus {
+  outline: none;
+  border-color: #609abb;
   background: white;
 }
 
 .results-info {
-  color: #6b7280;
-  font-size: 14px;
+  color: #5d7a90;
+  font-size: 0.9rem;
   font-weight: 500;
 }
 
-.loading {
+.results-badge {
+  background: #e4f4fc;
+  color: #609abb;
+  padding: 0.5rem 1rem;
+  border-radius: 30px;
+  font-weight: 600;
+}
+
+/* Loading State */
+.loading-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 80px 20px;
-  gap: 16px;
+  padding: 4rem 2rem;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 5px 15px rgba(5, 27, 58, 0.05);
 }
 
 .spinner {
   width: 48px;
   height: 48px;
-  border: 4px solid #e5e7eb;
-  border-top-color: #3b82f6;
+  border: 4px solid #e4f4fc;
+  border-top-color: #609abb;
   border-radius: 50%;
   animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
 }
 
 @keyframes spin {
@@ -410,224 +511,364 @@ onMounted(() => {
   }
 }
 
-.loading p {
+.loading-state p {
+  color: #5d7a90;
   margin: 0;
-  color: #6b7280;
-  font-size: 16px;
 }
 
+/* Error Message */
 .error-message {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 80px 20px;
-  gap: 16px;
+  padding: 3rem 2rem;
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 20px;
+  box-shadow: 0 5px 15px rgba(5, 27, 58, 0.05);
+  gap: 1rem;
 }
 
-.error-message svg {
+.error-icon {
+  font-size: 2rem;
+  background: #fee2e2;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: #ef4444;
 }
 
 .error-message p {
+  color: #5d7a90;
   margin: 0;
-  color: #6b7280;
-  font-size: 16px;
   text-align: center;
 }
 
+/* Products Grid */
 .products-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 24px;
-  margin-bottom: 32px;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
 }
 
+/* Empty State */
 .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 80px 20px;
+  padding: 4rem 2rem;
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 20px;
+  box-shadow: 0 5px 15px rgba(5, 27, 58, 0.05);
+  text-align: center;
 }
 
-.empty-state svg {
-  color: #d1d5db;
-  margin-bottom: 16px;
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  background: #e4f4fc;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .empty-state h3 {
-  margin: 0 0 8px 0;
-  font-size: 20px;
-  color: #111827;
+  margin: 0 0 0.5rem 0;
+  font-size: 1.3rem;
+  color: #051b3a;
 }
 
 .empty-state p {
-  margin: 0 0 24px 0;
-  color: #6b7280;
+  margin: 0 0 1.5rem 0;
+  color: #5d7a90;
 }
 
-.pagination {
+/* Pagination */
+.pagination-section {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 8px;
-  margin-top: 32px;
+  gap: 0.5rem;
+  margin-top: 2rem;
+  flex-wrap: wrap;
 }
 
-.btn-pagination {
+.pagination-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
   background: white;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
+  border: 2px solid #e4f4fc;
+  border-radius: 30px;
   cursor: pointer;
   font-weight: 600;
-  font-size: 14px;
-  color: #374151;
-  transition: all 0.2s;
+  font-size: 0.9rem;
+  color: #609abb;
+  transition: all 0.3s ease;
 }
 
-.btn-pagination:hover:not(:disabled) {
-  background: #f9fafb;
-  border-color: #9ca3af;
+.pagination-btn:hover:not(.disabled) {
+  background: #609abb;
+  border-color: #609abb;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(96, 154, 187, 0.3);
 }
 
-.btn-pagination:disabled {
-  opacity: 0.4;
+.pagination-btn.disabled {
+  opacity: 0.5;
   cursor: not-allowed;
+}
+
+.pagination-btn svg {
+  width: 18px;
+  height: 18px;
 }
 
 .page-numbers {
   display: flex;
-  gap: 4px;
+  gap: 0.25rem;
 }
 
 .page-number {
   min-width: 40px;
   height: 40px;
-  padding: 0 8px;
+  padding: 0 0.5rem;
   background: white;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
+  border: 2px solid #e4f4fc;
+  border-radius: 10px;
   cursor: pointer;
   font-weight: 600;
-  font-size: 14px;
-  color: #374151;
-  transition: all 0.2s;
+  font-size: 0.9rem;
+  color: #5d7a90;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.page-number:hover {
-  background: #f9fafb;
-  border-color: #9ca3af;
+.page-number:hover:not(.active):not(.ellipsis) {
+  background: #e4f4fc;
+  border-color: #609abb;
+  color: #051b3a;
+  transform: translateY(-2px);
 }
 
 .page-number.active {
-  background: #3b82f6;
-  border-color: #3b82f6;
+  background: #609abb;
+  border-color: #609abb;
   color: white;
+  box-shadow: 0 5px 15px rgba(96, 154, 187, 0.3);
 }
 
+.page-number.ellipsis {
+  border-color: transparent;
+  cursor: default;
+  background: transparent;
+}
+
+/* Buttons */
 .btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
-  border-radius: 8px;
-  font-size: 14px;
+  gap: 0.5rem;
+  padding: 0.875rem 1.75rem;
+  border-radius: 12px;
+  font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
   border: none;
 }
 
 .btn-primary {
-  background: #3b82f6;
+  background: linear-gradient(145deg, #609abb, #5d7a90);
   color: white;
+  box-shadow: 0 5px 15px rgba(96, 154, 187, 0.3);
 }
 
 .btn-primary:hover {
-  background: #2563eb;
+  background: linear-gradient(145deg, #5d7a90, #051b3a);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(5, 27, 58, 0.3);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
 }
 
 .btn-cancel {
-  background: #f3f4f6;
-  color: #374151;
+  background: #e4f4fc;
+  color: #5d7a90;
+  border: 2px solid #b4cbd8;
 }
 
 .btn-cancel:hover {
-  background: #e5e7eb;
+  background: #b4cbd8;
+  color: #051b3a;
+  transform: translateY(-2px);
 }
 
 .btn-danger {
-  background: #ef4444;
+  background: linear-gradient(145deg, #ef4444, #dc2626);
   color: white;
+  box-shadow: 0 5px 15px rgba(239, 68, 68, 0.3);
 }
 
 .btn-danger:hover {
-  background: #dc2626;
+  background: linear-gradient(145deg, #dc2626, #b91c1c);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
 }
 
-.confirm-dialog {
+.btn-icon {
+  font-size: 1.1rem;
+}
+
+/* Delete Confirmation Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(5, 27, 58, 0.6);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 1rem;
+}
+
+.confirm-modal {
   background: white;
-  border-radius: 12px;
-  padding: 32px;
+  border-radius: 24px;
+  padding: 2rem;
   max-width: 400px;
-  width: 100%;
-  text-align: center;
+  width: 90%;
+  box-shadow: 0 25px 50px -12px rgba(5, 27, 58, 0.25);
+  animation: modalAppear 0.3s ease;
+}
+
+@keyframes modalAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.confirm-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
 }
 
 .confirm-icon {
-  margin-bottom: 16px;
+  font-size: 2rem;
 }
 
-.confirm-icon svg {
-  color: #f59e0b;
+.confirm-header h3 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #051b3a;
 }
 
-.confirm-dialog h3 {
-  margin: 0 0 8px 0;
-  font-size: 20px;
-  color: #111827;
-}
-
-.confirm-dialog p {
-  margin: 0 0 24px 0;
-  color: #6b7280;
-  line-height: 1.5;
+.confirm-message {
+  margin: 0 0 1.5rem 0;
+  color: #5d7a90;
+  line-height: 1.6;
 }
 
 .confirm-actions {
   display: flex;
-  gap: 12px;
-  justify-content: center;
+  gap: 1rem;
 }
 
+/* Responsive */
 @media (max-width: 768px) {
+  .products-view {
+    padding: 1rem 0;
+  }
+
   .page-header {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .btn-primary {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .controls-section {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .items-per-page {
+    justify-content: space-between;
+  }
+
+  .per-page-select {
+    flex: 1;
+  }
+
+  .results-info {
+    text-align: center;
   }
 
   .products-grid {
     grid-template-columns: 1fr;
   }
 
-  .controls {
+  .pagination-section {
     flex-direction: column;
-    align-items: stretch;
+    gap: 1rem;
   }
 
-  .pagination {
+  .pagination-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .page-numbers {
+    order: -1;
+  }
+
+  .confirm-actions {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .page-numbers {
     flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .page-number {
+    min-width: 35px;
+    height: 35px;
   }
 }
 </style>

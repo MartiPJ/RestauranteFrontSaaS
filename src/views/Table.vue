@@ -1,3 +1,4 @@
+<!-- src/views/TablesView.vue -->
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useTableStore } from '@/stores/tableStore'
@@ -91,35 +92,29 @@ const handleCreateOrder = async (
       return
     }
 
-    // Si la mesa ya tiene órdenes abiertas, agregar items a la orden existente
     const openOrdersForTable = orderStore.orders.filter(
       (order) => order.table?.id === selectedTable.value?.id && order.status === 'open',
     )
 
-    // Tomar la orden abierta más reciente (si existe)
     const existingOrder = openOrdersForTable
       .slice()
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
 
     if (existingOrder) {
-      // Agregar items a la orden abierta encontrada
       await orderStore.addOrderItems(existingOrder.id, { items })
 
-      // Asegurar que la mesa esté marcada como ocupada
       if (selectedTable.value.status !== TableStatus.OCCUPIED) {
         await tableStore.updateTable(selectedTable.value.id, { status: TableStatus.OCCUPIED })
       }
 
       triggerToast('¡Items agregados a la orden existente!', 'success')
     } else {
-      // Crear nueva orden
       await orderStore.createOrder({
         tableId: selectedTable.value.id,
         items,
         notes: orderNotes,
       })
 
-      // Actualizar el estado de la mesa a ocupada
       if (selectedTable.value.status !== TableStatus.OCCUPIED) {
         await tableStore.updateTable(selectedTable.value.id, { status: TableStatus.OCCUPIED })
       }
@@ -130,7 +125,6 @@ const handleCreateOrder = async (
     showMenuModal.value = false
     selectedTable.value = null
 
-    // Refrescar datos
     await Promise.all([orderStore.fetchOrders(), tableStore.fetchTables()])
   } catch (error: any) {
     triggerToast(error.message || 'Error al procesar la orden')
@@ -158,9 +152,13 @@ const handleStatusChange = async (id: string, status: TableStatus) => {
 
 <template>
   <div class="tables-view">
+    <!-- Header con diseño mejorado -->
     <div class="header">
       <div class="header-content">
-        <h1>Gestión de Mesas</h1>
+        <div class="title-section">
+          <h1>Gestión de Mesas</h1>
+          <p class="subtitle">Administra el estado y disposición de las mesas</p>
+        </div>
         <button @click="openCreateModal" class="btn-add">
           <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -170,41 +168,59 @@ const handleStatusChange = async (id: string, status: TableStatus) => {
               d="M12 4v16m8-8H4"
             />
           </svg>
-          Nueva Mesa
+          <span>Nueva Mesa</span>
         </button>
       </div>
 
       <Transition name="toast">
         <div v-if="showToast" :class="['toast', toastType]">
+          <span class="toast-icon">{{ toastType === 'success' ? '✓' : '✗' }}</span>
           {{ toastMessage }}
         </div>
       </Transition>
 
+      <!-- Tarjetas de estadísticas -->
       <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-value">{{ tableStore.tables.length }}</div>
-          <div class="stat-label">Total Mesas</div>
+        <div class="stat-card total">
+          <div class="stat-icon">📊</div>
+          <div class="stat-content">
+            <div class="stat-value">{{ tableStore.tables.length }}</div>
+            <div class="stat-label">Total Mesas</div>
+          </div>
         </div>
         <div class="stat-card available">
-          <div class="stat-value">{{ tableStore.availableTables.length }}</div>
-          <div class="stat-label">Disponibles</div>
+          <div class="stat-icon">✅</div>
+          <div class="stat-content">
+            <div class="stat-value">{{ tableStore.availableTables.length }}</div>
+            <div class="stat-label">Disponibles</div>
+          </div>
         </div>
         <div class="stat-card occupied">
-          <div class="stat-value">{{ tableStore.occupiedTables.length }}</div>
-          <div class="stat-label">Ocupadas</div>
+          <div class="stat-icon">👥</div>
+          <div class="stat-content">
+            <div class="stat-value">{{ tableStore.occupiedTables.length }}</div>
+            <div class="stat-label">Ocupadas</div>
+          </div>
         </div>
         <div class="stat-card reserved">
-          <div class="stat-value">{{ tableStore.reservedTables.length }}</div>
-          <div class="stat-label">Reservadas</div>
+          <div class="stat-icon">📅</div>
+          <div class="stat-content">
+            <div class="stat-value">{{ tableStore.reservedTables.length }}</div>
+            <div class="stat-label">Reservadas</div>
+          </div>
         </div>
-        <div class="stat-card">
-          <div class="stat-value">{{ tableStore.totalCapacity }}</div>
-          <div class="stat-label">Capacidad Total</div>
+        <div class="stat-card capacity">
+          <div class="stat-icon">🪑</div>
+          <div class="stat-content">
+            <div class="stat-value">{{ tableStore.totalCapacity }}</div>
+            <div class="stat-label">Capacidad Total</div>
+          </div>
         </div>
       </div>
     </div>
 
-    <div class="filters">
+    <!-- Filtros y búsqueda -->
+    <div class="filters-section">
       <div class="search-box">
         <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
@@ -217,7 +233,7 @@ const handleStatusChange = async (id: string, status: TableStatus) => {
         <input
           v-model="searchQuery"
           type="text"
-          placeholder="Buscar mesa..."
+          placeholder="Buscar por número de mesa..."
           class="search-input"
         />
       </div>
@@ -227,48 +243,48 @@ const handleStatusChange = async (id: string, status: TableStatus) => {
           @click="filterStatus = 'all'"
           :class="['filter-btn', { active: filterStatus === 'all' }]"
         >
+          <span class="filter-dot all"></span>
           Todas
         </button>
         <button
           @click="filterStatus = TableStatus.AVAILABLE"
           :class="['filter-btn', 'available', { active: filterStatus === TableStatus.AVAILABLE }]"
         >
+          <span class="filter-dot available"></span>
           Disponibles
         </button>
         <button
           @click="filterStatus = TableStatus.OCCUPIED"
           :class="['filter-btn', 'occupied', { active: filterStatus === TableStatus.OCCUPIED }]"
         >
+          <span class="filter-dot occupied"></span>
           Ocupadas
         </button>
         <button
           @click="filterStatus = TableStatus.RESERVED"
           :class="['filter-btn', 'reserved', { active: filterStatus === TableStatus.RESERVED }]"
         >
+          <span class="filter-dot reserved"></span>
           Reservadas
         </button>
       </div>
     </div>
 
+    <!-- Estados de carga y error -->
     <div v-if="tableStore.loading" class="loading">
       <div class="spinner"></div>
       <p>Cargando mesas...</p>
     </div>
 
     <div v-else-if="tableStore.error" class="error-message">
+      <span class="error-icon">⚠️</span>
       {{ tableStore.error }}
     </div>
 
+    <!-- Estado vacío -->
     <div v-else-if="filteredTables.length === 0" class="empty-state">
-      <svg class="empty-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
-        />
-      </svg>
-      <h3>No hay mesas</h3>
+      <div class="empty-icon">🍽️</div>
+      <h3>No hay mesas disponibles</h3>
       <p>
         {{
           searchQuery
@@ -276,8 +292,12 @@ const handleStatusChange = async (id: string, status: TableStatus) => {
             : 'Comienza creando tu primera mesa'
         }}
       </p>
+      <button v-if="searchQuery" @click="searchQuery = ''" class="btn-clear">
+        Limpiar búsqueda
+      </button>
     </div>
 
+    <!-- Grid de mesas -->
     <div v-else class="tables-grid">
       <TableCard
         v-for="table in filteredTables"
@@ -290,6 +310,7 @@ const handleStatusChange = async (id: string, status: TableStatus) => {
       />
     </div>
 
+    <!-- Modales -->
     <TableModal
       :show="showTableModal"
       :table="selectedTable"
@@ -310,48 +331,63 @@ const handleStatusChange = async (id: string, status: TableStatus) => {
 
 <style scoped>
 .tables-view {
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 24px;
+  min-height: 100vh;
+  background-color: #e4f4fc;
+  padding: 2rem;
 }
 
+/* Header Styles */
 .header {
-  margin-bottom: 32px;
+  margin-bottom: 2rem;
 }
 
 .header-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
-.header-content h1 {
-  font-size: 32px;
+.title-section h1 {
+  font-size: 2.2rem;
   font-weight: 700;
-  color: #1f2937;
+  color: #051b3a;
+  margin: 0 0 0.25rem 0;
+  letter-spacing: -0.5px;
+}
+
+.subtitle {
+  color: #5d7a90;
+  font-size: 1rem;
   margin: 0;
 }
 
 .btn-add {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
-  background-color: #3b82f6;
+  gap: 0.75rem;
+  padding: 0.875rem 1.75rem;
+  background: linear-gradient(145deg, #609abb, #5d7a90);
   color: white;
   border: none;
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: 12px;
+  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
+  box-shadow: 0 5px 15px rgba(96, 154, 187, 0.3);
 }
 
 .btn-add:hover {
-  background-color: #2563eb;
+  background: linear-gradient(145deg, #5d7a90, #051b3a);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 8px 20px rgba(5, 27, 58, 0.3);
+}
+
+.btn-add:active {
+  transform: translateY(0);
 }
 
 .icon {
@@ -359,50 +395,90 @@ const handleStatusChange = async (id: string, status: TableStatus) => {
   height: 20px;
 }
 
+/* Stats Grid */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
 }
 
 .stat-card {
   background: white;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  border-left: 4px solid #3b82f6;
+  padding: 1.25rem;
+  border-radius: 16px;
+  box-shadow: 0 5px 15px rgba(5, 27, 58, 0.05);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+  border: 1px solid rgba(96, 154, 187, 0.1);
 }
 
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(5, 27, 58, 0.1);
+}
+
+.stat-card.total {
+  border-left: 4px solid #609abb;
+}
 .stat-card.available {
-  border-left-color: #10b981;
+  border-left: 4px solid #10b981;
 }
-
 .stat-card.occupied {
-  border-left-color: #ef4444;
+  border-left: 4px solid #ef4444;
+}
+.stat-card.reserved {
+  border-left: 4px solid #f59e0b;
+}
+.stat-card.capacity {
+  border-left: 4px solid #8b5cf6;
 }
 
-.stat-card.reserved {
-  border-left-color: #f59e0b;
+.stat-icon {
+  font-size: 2rem;
+  background: #e4f4fc;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stat-content {
+  flex: 1;
 }
 
 .stat-value {
-  font-size: 32px;
+  font-size: 1.8rem;
   font-weight: 700;
-  color: #1f2937;
-  margin-bottom: 4px;
+  color: #051b3a;
+  line-height: 1.2;
 }
 
 .stat-label {
-  font-size: 14px;
-  color: #6b7280;
+  font-size: 0.85rem;
+  color: #5d7a90;
   font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.filters {
+/* Filters Section */
+.filters-section {
+  background: white;
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
   display: flex;
-  gap: 16px;
-  margin-bottom: 24px;
+  gap: 1.5rem;
   flex-wrap: wrap;
+  align-items: center;
+  box-shadow: 0 5px 15px rgba(5, 27, 58, 0.05);
 }
 
 .search-box {
@@ -413,96 +489,135 @@ const handleStatusChange = async (id: string, status: TableStatus) => {
 
 .search-icon {
   position: absolute;
-  left: 12px;
+  left: 14px;
   top: 50%;
   transform: translateY(-50%);
-  width: 20px;
-  height: 20px;
-  color: #9ca3af;
+  width: 18px;
+  height: 18px;
+  color: #b4cbd8;
 }
 
 .search-input {
   width: 100%;
-  padding: 10px 12px 10px 40px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 14px;
-  box-sizing: border-box;
+  padding: 0.875rem 1rem 0.875rem 3rem;
+  border: 2px solid #e4f4fc;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  background: #e4f4fc;
+  color: #051b3a;
+}
+
+.search-input::placeholder {
+  color: #b4cbd8;
 }
 
 .search-input:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: #609abb;
+  background: white;
+  box-shadow: 0 0 0 4px rgba(96, 154, 187, 0.1);
 }
 
 .filter-buttons {
   display: flex;
-  gap: 8px;
+  gap: 0.5rem;
   flex-wrap: wrap;
 }
 
 .filter-btn {
-  padding: 10px 20px;
-  border: 2px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  border: 2px solid #e4f4fc;
   background: white;
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: 30px;
+  font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
-  color: #6b7280;
+  transition: all 0.3s ease;
+  color: #5d7a90;
+}
+
+.filter-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.filter-dot.all {
+  background: #609abb;
+}
+.filter-dot.available {
+  background: #10b981;
+}
+.filter-dot.occupied {
+  background: #ef4444;
+}
+.filter-dot.reserved {
+  background: #f59e0b;
 }
 
 .filter-btn:hover {
-  border-color: #d1d5db;
-  background-color: #f9fafb;
+  border-color: #609abb;
+  background: #e4f4fc;
+  color: #051b3a;
 }
 
 .filter-btn.active {
-  background-color: #3b82f6;
+  background: #609abb;
   color: white;
-  border-color: #3b82f6;
+  border-color: #609abb;
+}
+
+.filter-btn.active .filter-dot {
+  background: white;
 }
 
 .filter-btn.available.active {
-  background-color: #10b981;
+  background: #10b981;
   border-color: #10b981;
 }
 
 .filter-btn.occupied.active {
-  background-color: #ef4444;
+  background: #ef4444;
   border-color: #ef4444;
 }
 
 .filter-btn.reserved.active {
-  background-color: #f59e0b;
+  background: #f59e0b;
   border-color: #f59e0b;
 }
 
+/* Tables Grid */
 .tables-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 1.5rem;
 }
 
+/* Loading State */
 .loading {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 20px;
-  color: #6b7280;
+  padding: 4rem 2rem;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 5px 15px rgba(5, 27, 58, 0.05);
 }
 
 .spinner {
   width: 48px;
   height: 48px;
-  border: 4px solid #e5e7eb;
-  border-top-color: #3b82f6;
+  border: 4px solid #e4f4fc;
+  border-top-color: #609abb;
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin-bottom: 16px;
+  margin-bottom: 1rem;
 }
 
 @keyframes spin {
@@ -511,85 +626,115 @@ const handleStatusChange = async (id: string, status: TableStatus) => {
   }
 }
 
+/* Error Message */
 .error-message {
-  background-color: #fee2e2;
+  background: #fee2e2;
   color: #dc2626;
-  padding: 16px;
-  border-radius: 8px;
+  padding: 1.25rem;
+  border-radius: 12px;
   text-align: center;
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
+.error-icon {
+  font-size: 1.25rem;
+}
+
+/* Empty State */
 .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 20px;
+  padding: 4rem 2rem;
+  background: white;
+  border-radius: 20px;
   text-align: center;
+  box-shadow: 0 5px 15px rgba(5, 27, 58, 0.05);
 }
 
 .empty-icon {
-  width: 64px;
-  height: 64px;
-  color: #d1d5db;
-  margin-bottom: 16px;
+  font-size: 4rem;
+  margin-bottom: 1.5rem;
+  background: #e4f4fc;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .empty-state h3 {
-  font-size: 20px;
-  color: #374151;
-  margin: 0 0 8px 0;
+  font-size: 1.5rem;
+  color: #051b3a;
+  margin: 0 0 0.5rem 0;
 }
 
 .empty-state p {
-  color: #6b7280;
-  margin: 0;
+  color: #5d7a90;
+  margin: 0 0 1.5rem 0;
 }
 
-@media (max-width: 768px) {
-  .tables-view {
-    padding: 16px;
-  }
-
-  .header-content {
-    flex-direction: column;
-    gap: 16px;
-    align-items: stretch;
-  }
-
-  .stats-grid {
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  }
-
-  .filters {
-    flex-direction: column;
-  }
-
-  .tables-grid {
-    grid-template-columns: 1fr;
-  }
+.btn-clear {
+  padding: 0.75rem 2rem;
+  background: #e4f4fc;
+  color: #609abb;
+  border: 2px solid #609abb;
+  border-radius: 30px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
 }
 
-/* Toast styles */
+.btn-clear:hover {
+  background: #609abb;
+  color: white;
+}
+
+/* Toast Styles */
 .toast {
   position: fixed;
-  bottom: 20px;
-  right: 20px;
-  padding: 14px 20px;
-  border-radius: 10px;
+  bottom: 30px;
+  right: 30px;
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
   color: white;
   font-weight: 600;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 15px 30px rgba(5, 27, 58, 0.2);
   z-index: 2000;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  animation: slideIn 0.3s ease;
 }
 
 .toast.success {
-  background-color: #10b981;
+  background: linear-gradient(145deg, #10b981, #059669);
 }
 
 .toast.error {
-  background-color: #ef4444;
+  background: linear-gradient(145deg, #ef4444, #dc2626);
+}
+
+.toast-icon {
+  font-size: 1.25rem;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
 .toast-enter-active,
@@ -600,6 +745,59 @@ const handleStatusChange = async (id: string, status: TableStatus) => {
 .toast-enter-from,
 .toast-leave-to {
   opacity: 0;
-  transform: translateY(20px);
+  transform: translateX(100%);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .tables-view {
+    padding: 1rem;
+  }
+
+  .title-section h1 {
+    font-size: 1.8rem;
+  }
+
+  .btn-add {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .filters-section {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .filter-buttons {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .filter-btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .tables-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .toast {
+    left: 20px;
+    right: 20px;
+    bottom: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-btn {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+  }
 }
 </style>
