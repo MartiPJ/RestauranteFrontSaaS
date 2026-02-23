@@ -38,8 +38,9 @@
       </button>
     </nav>
 
-    <!-- Resumen rápido (opcional, puedes personalizar) -->
-    <div class="quick-stats">
+    <!-- Resumen rápido, aqui proximamente se realizara las graficas correspondientes
+    para el administrador para ver las ventas, clientes, ordenes atendidas etc.-->
+    <!-- <div class="quick-stats">
       <div class="stat-card">
         <span class="stat-icon">📊</span>
         <div class="stat-info">
@@ -61,7 +62,7 @@
           <span class="stat-label">Ventas hoy</span>
         </div>
       </div>
-    </div>
+    </div> -->
   </div>
 </template>
 

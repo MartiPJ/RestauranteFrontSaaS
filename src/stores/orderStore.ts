@@ -75,7 +75,6 @@ export const useOrderStore = defineStore('order', () => {
     try {
       const order = await orderService.getOrderById(id)
       currentOrder.value = order
-      console.log('ORDER DATA:', order)
       return order
     } catch (e: any) {
       error.value = e.message || 'Error al cargar la orden'

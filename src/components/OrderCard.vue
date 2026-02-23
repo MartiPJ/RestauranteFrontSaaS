@@ -150,15 +150,6 @@ const timeAgo = computed(() => {
           <span class="info-text"> <strong>Mesero:</strong> {{ order.user.name }} </span>
         </div>
 
-        <!-- Cantidad de items -->
-        <div class="info-item">
-          <span class="info-icon">🍽️</span>
-          <span class="info-text">
-            <strong>Items:</strong> {{ itemsCount }}
-            {{ itemsCount === 1 ? 'producto' : 'productos' }}
-          </span>
-        </div>
-
         <!-- Notas de la orden (si existen) -->
         <div v-if="order.notes" class="info-item notes-item">
           <span class="info-icon">📝</span>
