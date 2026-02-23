@@ -17,7 +17,7 @@
       <div class="user-info">
         <span class="user-avatar">👤</span>
         <span class="user-name"
-          >Bienvenido: {{ authStore.user?.name || authStore.user?.email || 'Usuario' }} - Rol:
+          >Bienvenido: {{ authStore.user?.name || 'Usuario' }} - Rol:
           {{ authStore.user?.roles?.join(', ') || 'Sin roles' }}</span
         >
       </div>

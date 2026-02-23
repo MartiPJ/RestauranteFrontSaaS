@@ -62,10 +62,6 @@ export const useInvoiceStore = defineStore('invoice', () => {
       //  Asegurar que solo órdenes DELIVERED estén en la lista
       const filteredOrders = response.data.filter((order) => order.status === OrderStatus.DELIVERED)
 
-      console.log(
-        `Backend devolvió ${response.data.length} órdenes, filtradas a ${filteredOrders.length} entregadas`,
-      )
-
       deliveredOrders.value = filteredOrders
       currentPage.value = response.meta.currentPage
       itemsPerPage.value = response.meta.itemsPerPage
