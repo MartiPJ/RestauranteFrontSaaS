@@ -4,7 +4,7 @@ import LoginForm from '@/components/LoginForm.vue'
 import { onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
-import logoPlato from '@/assets/images/LogoScratchcopia2..png'
+import logoFromScratch from '@/assets/images/LogoScratchcopia2..png'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -44,7 +44,7 @@ onMounted(() => {
             box-shadow: 0 10px 25px rgba(5, 27, 58, 0.3);
           "
         >
-          <img :src="logoPlato" alt="Logo" class="w-15 h-15 object-contain" />
+          <img :src="logoFromScratch" alt="Logo" class="w-15 h-15 object-contain" />
         </div>
         <h1
           style="

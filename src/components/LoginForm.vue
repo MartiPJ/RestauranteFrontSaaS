@@ -47,10 +47,7 @@ const togglePasswordVisibility = () => {
     <form @submit.prevent="handleSubmit" class="login-form">
       <!-- Email Input -->
       <div class="form-group">
-        <label for="email">
-          <span class="label-icon">📧</span>
-          Correo Electrónico
-        </label>
+        <label for="email"> Correo Electrónico </label>
         <div class="input-wrapper">
           <span class="input-icon">@</span>
           <input
@@ -68,10 +65,7 @@ const togglePasswordVisibility = () => {
 
       <!-- Password Input -->
       <div class="form-group">
-        <label for="password">
-          <span class="label-icon">🔑</span>
-          Contraseña
-        </label>
+        <label for="password"> Contraseña </label>
         <div class="input-wrapper">
           <span class="input-icon">🔒</span>
           <input
