@@ -22,6 +22,7 @@ import InvoiceImage from '@/assets/images/credit-card-money-svgrepo-com.png'
 import CategoriesImage from '@/assets/images/shopping-bag-supermarket-svgrepo-com.png'
 import ProductsImage from '@/assets/images/champagne-svgrepo-com.png'
 import UsersImage from '@/assets/images/reception-english-svgrepo-com.png'
+import CashClosureImage from '@/assets/images/safebox-banking-svgrepo-com.png'
 
 export const menu: MenuSection[] = [
   {
@@ -61,6 +62,13 @@ export const menu: MenuSection[] = [
         label: 'Usuarios',
         path: '/Users',
         svg: UsersImage,
+        allowedRoles: ['admin', 'manager'],
+      },
+      {
+        id: 'CashClosure',
+        label: 'Cierre de Caja',
+        path: '/cash-closure',
+        svg: CashClosureImage,
         allowedRoles: ['admin', 'manager'],
       },
     ],

@@ -78,6 +78,7 @@ import InvoiceImage from '@/assets/images/credit-card-money-svgrepo-com.png'
 import CategoriesImage from '@/assets/images/shopping-bag-supermarket-svgrepo-com.png'
 import ProductsImage from '@/assets/images/champagne-svgrepo-com.png'
 import UsersImage from '@/assets/images/reception-english-svgrepo-com.png'
+import CashClosureImage from '@/assets/images/safebox-banking-svgrepo-com.png'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -147,6 +148,15 @@ const allSections: DashboardSection[] = [
     description: 'Gestionar usuarios del sistema',
     icon: UsersImage,
     route: '/Users',
+    colorClass: 'color-tertiary',
+    roles: ['admin', 'manager'],
+  },
+  {
+    id: 'CashClosure',
+    label: 'Cierre de Caja',
+    description: 'Cerrar caja diaria',
+    icon: CashClosureImage,
+    route: '/cash-closure',
     colorClass: 'color-tertiary',
     roles: ['admin', 'manager'],
   },

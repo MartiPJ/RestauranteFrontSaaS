@@ -11,6 +11,7 @@ import OrdersView from '@/views/OrdersView.vue'
 import KitchenView from '@/views/KitchenView.vue'
 import InvoiceView from '@/views/InvoiceView.vue'
 import UsersView from '@/views/UsersView.vue'
+import CashClosureView from '@/views/CashClosureView.vue'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -71,6 +72,12 @@ const routes: RouteRecordRaw[] = [
     component: UsersView,
     meta: { requiresAuth: true, allowedRoles: ['admin', 'manager'] },
   },
+  {
+    path: '/cash-closure',
+    name: 'cash-closure',
+    component: CashClosureView,
+    meta: { requiresAuth: true, allowedRoles: ['admin', 'manager'] },
+  },
 ]
 
 const router = createRouter({
@@ -95,11 +102,10 @@ router.beforeEach(async (to, from, next) => {
   }
 
   // 🚨 Validar roles si existen
-  if (allowedRoles && authStore.user?.roles) {
-    const userRole = authStore.user.roles.toString().toLowerCase() // Convertir a string y minúscula
+  if (allowedRoles && allowedRoles.length > 0) {
+    const hasAccess = allowedRoles.some((role) => authStore.hasRole(role))
 
-    if (!allowedRoles.includes(userRole)) {
-      // Puedes redirigir al dashboard u otra vista
+    if (!hasAccess) {
       return next({ name: 'dashboard' })
     }
   }

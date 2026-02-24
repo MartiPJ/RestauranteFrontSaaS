@@ -132,10 +132,6 @@ const isOrderSelected = computed(() => {
             <span class="summary-value">{{ formatCurrency(order.tax) }}</span>
           </div>
         </div>
-
-        <div class="order-footer">
-          <span class="items-count"> {{ order.orderProducts?.length || 0 }} productos </span>
-        </div>
       </div>
     </div>
 

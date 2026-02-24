@@ -3,6 +3,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useOrderStore } from '@/stores/orderStore'
 import { useTableStore } from '@/stores/tableStore'
+import { useRouter } from 'vue-router'
 import OrderCard from '@/components/OrderCard.vue'
 import MenuModal from '@/components/MenuModal.vue'
 import ConfirmationModal from '@/components/Confirmationmodal.vue'
@@ -13,6 +14,7 @@ import OrderDetailModal from '@/components/OrderDetailModal.vue'
 
 const orderStore = useOrderStore()
 const tableStore = useTableStore()
+const router = useRouter()
 
 const showMenuModal = ref(false)
 const selectedTable = ref<Table | null>(null)
@@ -41,6 +43,9 @@ const filteredOrders = computed(() => {
 
   if (filterStatus.value !== 'all') {
     result = result.filter((o) => o.status === filterStatus.value)
+  } else {
+    // When showing "all", exclude paid orders — those belong to Cash Closure
+    result = result.filter((o) => o.status !== OrderStatus.PAID)
   }
 
   if (searchQuery.value) {
@@ -156,6 +161,7 @@ const confirmDeleteOrder = async () => {
 
 const handleFilterChange = async (status: string) => {
   filterStatus.value = status
+  // Never fetch 'paid' from this view — those go to Cash Closure
   await orderStore.fetchOrders({
     status: status === 'all' ? undefined : status,
   })
@@ -199,7 +205,7 @@ const handleUpdateItemStatus = async (itemId: string, status: OrderItemStatus) =
         </div>
       </Transition>
 
-      <!-- Stats Grid -->
+      <!-- Stats Grid — excludes paid (those are in Cash Closure) -->
       <div class="stats-grid">
         <div class="stat-card open">
           <div class="stat-icon">📋</div>
@@ -235,15 +241,6 @@ const handleUpdateItemStatus = async (itemId: string, status: OrderItemStatus) =
               {{ orderStore.orders.filter((o) => o.status === OrderStatus.DELIVERED).length }}
             </div>
             <div class="stat-label">Entregadas</div>
-          </div>
-        </div>
-        <div class="stat-card paid">
-          <div class="stat-icon">💰</div>
-          <div class="stat-content">
-            <div class="stat-value">
-              {{ orderStore.orders.filter((o) => o.status === OrderStatus.PAID).length }}
-            </div>
-            <div class="stat-label">Pagadas</div>
           </div>
         </div>
         <div class="stat-card cancelled">
@@ -330,6 +327,20 @@ const handleUpdateItemStatus = async (itemId: string, status: OrderItemStatus) =
         >
           <span class="filter-dot open"></span>
           Abiertas
+        </button>
+        <button
+          @click="handleFilterChange('in_progress')"
+          :class="['filter-btn', 'in-progress', { active: filterStatus === 'in_progress' }]"
+        >
+          <span class="filter-dot in-progress"></span>
+          En Progreso
+        </button>
+        <button
+          @click="handleFilterChange('delivered')"
+          :class="['filter-btn', 'delivered', { active: filterStatus === 'delivered' }]"
+        >
+          <span class="filter-dot delivered"></span>
+          Entregadas
         </button>
         <button
           @click="handleFilterChange('cancelled')"
@@ -485,6 +496,18 @@ const handleUpdateItemStatus = async (itemId: string, status: OrderItemStatus) =
   box-shadow: 0 8px 20px rgba(245, 158, 11, 0.4);
 }
 
+.btn-add.cash-closure-link {
+  background: linear-gradient(145deg, #10b981, #059669);
+  color: white;
+  box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3);
+}
+
+.btn-add.cash-closure-link:hover {
+  background: linear-gradient(145deg, #059669, #047857);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+}
+
 .btn-icon {
   font-size: 1.2rem;
 }
@@ -513,6 +536,10 @@ const handleUpdateItemStatus = async (itemId: string, status: OrderItemStatus) =
   box-shadow: 0 8px 20px rgba(5, 27, 58, 0.1);
 }
 
+.stat-card.clickable {
+  cursor: pointer;
+}
+
 .stat-card.open {
   border-left: 4px solid #10b981;
 }
@@ -526,7 +553,8 @@ const handleUpdateItemStatus = async (itemId: string, status: OrderItemStatus) =
   border-left: 4px solid #8b5cf6;
 }
 .stat-card.paid {
-  border-left: 4px solid #5d7a90;
+  border-left: 4px solid #10b981;
+  background: linear-gradient(135deg, #f0fdf4, white);
 }
 .stat-card.cancelled {
   border-left: 4px solid #ef4444;
@@ -560,6 +588,17 @@ const handleUpdateItemStatus = async (itemId: string, status: OrderItemStatus) =
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+.paid-label {
+  font-size: 0.75rem;
+  margin-bottom: 0.1rem;
+}
+
+.paid-link {
+  font-size: 0.95rem;
+  color: #10b981;
+  font-weight: 700;
 }
 
 /* Available Tables Section */
@@ -779,6 +818,12 @@ const handleUpdateItemStatus = async (itemId: string, status: OrderItemStatus) =
 .filter-dot.open {
   background: #10b981;
 }
+.filter-dot.in-progress {
+  background: #609abb;
+}
+.filter-dot.delivered {
+  background: #8b5cf6;
+}
 .filter-dot.cancelled {
   background: #ef4444;
 }
@@ -803,7 +848,14 @@ const handleUpdateItemStatus = async (itemId: string, status: OrderItemStatus) =
   background: #10b981;
   border-color: #10b981;
 }
-
+.filter-btn.in-progress.active {
+  background: #609abb;
+  border-color: #609abb;
+}
+.filter-btn.delivered.active {
+  background: #8b5cf6;
+  border-color: #8b5cf6;
+}
 .filter-btn.cancelled.active {
   background: #ef4444;
   border-color: #ef4444;
@@ -935,7 +987,6 @@ const handleUpdateItemStatus = async (itemId: string, status: OrderItemStatus) =
 .toast.success {
   background: linear-gradient(145deg, #10b981, #059669);
 }
-
 .toast.error {
   background: linear-gradient(145deg, #ef4444, #dc2626);
 }
@@ -955,7 +1006,6 @@ const handleUpdateItemStatus = async (itemId: string, status: OrderItemStatus) =
 .toast-leave-active {
   transition: all 0.3s ease;
 }
-
 .toast-enter-from,
 .toast-leave-to {
   opacity: 0;
@@ -979,6 +1029,7 @@ const handleUpdateItemStatus = async (itemId: string, status: OrderItemStatus) =
 
   .header-actions {
     width: 100%;
+    flex-direction: column;
   }
 
   .btn-add {
@@ -1024,17 +1075,14 @@ const handleUpdateItemStatus = async (itemId: string, status: OrderItemStatus) =
   .stat-card {
     padding: 1rem;
   }
-
   .stat-icon {
     width: 40px;
     height: 40px;
     font-size: 1.5rem;
   }
-
   .stat-value {
     font-size: 1.4rem;
   }
-
   .stat-label {
     font-size: 0.75rem;
   }
