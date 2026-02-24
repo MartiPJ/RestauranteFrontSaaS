@@ -2,6 +2,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useInvoiceStore } from '@/stores/invoiceStore'
+import { generateInvoicePrintHtml } from '@/data/invoicePrintTemplate'
 import type { Order } from '@/types/order'
 
 const props = defineProps<{
@@ -17,27 +18,27 @@ const invoiceStore = useInvoiceStore()
 const isProcessing = ref(false)
 const showConfirmModal = ref(false)
 
-// Usar el invoice del store
 const invoice = computed(() => invoiceStore.currentInvoice)
+
+// ── Watchers ──────────────────────────────────────────────────────────────────
 
 watch(
   () => props.order,
   async (newOrder) => {
-    if (newOrder) {
-      if (invoiceStore.selectedOrder?.id !== newOrder.id) {
-        try {
-          await invoiceStore.fetchOrderDetails(newOrder.id)
-        } catch (error) {
-          console.error('Error al cargar detalles:', error)
-        }
+    if (newOrder && invoiceStore.selectedOrder?.id !== newOrder.id) {
+      try {
+        await invoiceStore.fetchOrderDetails(newOrder.id)
+      } catch (error) {
+        console.error('Error al cargar detalles:', error)
       }
     }
   },
   { immediate: true },
 )
 
+// ── Formatters ────────────────────────────────────────────────────────────────
+
 function formatDate(dateString: string): string {
-  const date = new Date(dateString)
   return new Intl.DateTimeFormat('es-GT', {
     weekday: 'long',
     year: 'numeric',
@@ -45,7 +46,7 @@ function formatDate(dateString: string): string {
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-  }).format(date)
+  }).format(new Date(dateString))
 }
 
 function formatCurrency(value: string | number): string {
@@ -57,6 +58,8 @@ function formatCurrency(value: string | number): string {
   }).format(num)
 }
 
+// ── Modal ─────────────────────────────────────────────────────────────────────
+
 function openConfirmModal() {
   showConfirmModal.value = true
 }
@@ -67,12 +70,12 @@ function closeConfirmModal() {
 
 async function confirmPayment() {
   if (!invoice.value) return
-
+  const orderId = invoice.value.id
   isProcessing.value = true
   try {
-    await invoiceStore.markOrderAsPaid(invoice.value.id)
+    await invoiceStore.markOrderAsPaid(orderId)
     showConfirmModal.value = false
-    emit('paid', invoice.value.id)
+    emit('paid', orderId)
   } catch (error) {
     console.error('Error al procesar pago:', error)
   } finally {
@@ -80,12 +83,37 @@ async function confirmPayment() {
   }
 }
 
-function handleClose() {
-  emit('close')
-}
+// ── Print ─────────────────────────────────────────────────────────────────────
 
 function printInvoice() {
-  window.print()
+  if (!invoice.value) return
+
+  const html = generateInvoicePrintHtml({
+    ...invoice.value,
+    tableNumber: invoice.value.tableNumber ?? undefined,
+    notes: invoice.value.notes ?? undefined,
+    products:
+      invoice.value.products?.map((product) => ({
+        ...product,
+        notes: product.notes ?? undefined,
+      })) ?? [],
+  })
+
+  const printWindow = window.open('', '_blank', 'width=800,height=900,scrollbars=yes')
+  if (!printWindow) {
+    alert('Por favor permite ventanas emergentes para imprimir la factura.')
+    return
+  }
+
+  printWindow.document.open()
+  printWindow.document.write(html)
+  printWindow.document.close()
+}
+
+// ── Emit close ────────────────────────────────────────────────────────────────
+
+function handleClose() {
+  emit('close')
 }
 </script>
 
@@ -97,11 +125,12 @@ function printInvoice() {
       <p class="loading-text">Cargando detalles de factura...</p>
     </div>
 
+    <!-- Invoice Content -->
     <div v-else-if="invoice" class="invoice-content">
-      <!-- Header con acciones (no imprimible) -->
-      <div class="invoice-header no-print">
+      <!-- Topbar con acciones -->
+      <div class="invoice-header">
         <div class="header-left">
-          <button @click="handleClose" class="btn-icon back-btn" title="Volver">
+          <button @click="handleClose" class="back-btn" title="Volver">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <line x1="19" y1="12" x2="5" y2="12" stroke-width="2" />
               <polyline points="12 19 5 12 12 5" stroke-width="2" />
@@ -121,9 +150,9 @@ function printInvoice() {
         </div>
       </div>
 
-      <!-- Documento de factura -->
+      <!-- Documento de factura (preview en pantalla) -->
       <div class="invoice-document">
-        <!-- Encabezado del restaurante -->
+        <!-- Encabezado -->
         <div class="restaurant-header">
           <div class="restaurant-logo">
             <span class="logo-emoji">🍽️</span>
@@ -154,10 +183,10 @@ function printInvoice() {
           </div>
         </div>
 
-        <!-- Notas de la orden -->
+        <!-- Notas -->
         <div v-if="invoice.notes" class="notes-section">
           <div class="notes-header">
-            <span class="notes-icon">📝</span>
+            <span>📝</span>
             <span class="notes-label">Notas de la orden</span>
           </div>
           <p class="notes-text">{{ invoice.notes }}</p>
@@ -180,12 +209,9 @@ function printInvoice() {
                 <tr v-for="product in invoice.products" :key="product.id">
                   <td class="text-left">
                     <div class="product-name">{{ product.name }}</div>
-                    <div v-if="product.notes" class="product-notes">
-                      <span class="note-icon">💬</span>
-                      {{ product.notes }}
-                    </div>
+                    <div v-if="product.notes" class="product-notes">💬 {{ product.notes }}</div>
                   </td>
-                  <td class="text-center quantity-cell">
+                  <td class="text-center">
                     <span class="quantity-badge">{{ product.quantity }}</span>
                   </td>
                   <td class="text-right">{{ formatCurrency(product.unitPrice) }}</td>
@@ -223,11 +249,11 @@ function printInvoice() {
     </div>
 
     <!-- Modal de confirmación -->
-    <div v-if="showConfirmModal" class="modal-overlay no-print" @click.self="closeConfirmModal">
+    <div v-if="showConfirmModal" class="modal-overlay" @click.self="closeConfirmModal">
       <div class="modal-container">
         <div class="modal-header">
           <div class="header-icon">
-            <span class="icon-emoji">💰</span>
+            <span>💰</span>
           </div>
           <h3>Confirmar Pago</h3>
           <button @click="closeConfirmModal" class="close-btn" title="Cerrar">
@@ -249,13 +275,12 @@ function printInvoice() {
         </div>
         <div class="modal-footer">
           <button @click="closeConfirmModal" class="btn btn-cancel" :disabled="isProcessing">
-            <span class="btn-icon">✕</span>
-            Cancelar
+            <span>✕</span> Cancelar
           </button>
           <button @click="confirmPayment" class="btn btn-success" :disabled="isProcessing">
-            <span class="btn-icon" v-if="!isProcessing">✅</span>
-            <span class="spinner-small" v-else></span>
-            <span>{{ isProcessing ? 'Procesando...' : 'Confirmar Pago' }}</span>
+            <span class="spinner-small" v-if="isProcessing"></span>
+            <span v-else>✅</span>
+            {{ isProcessing ? 'Procesando...' : 'Confirmar Pago' }}
           </button>
         </div>
       </div>
@@ -264,6 +289,7 @@ function printInvoice() {
 </template>
 
 <style scoped>
+/* ── Container ─────────────────────────────────────────────────────────────── */
 .invoice-detail-container {
   height: 100%;
   background: white;
@@ -276,7 +302,7 @@ function printInvoice() {
   border: 1px solid rgba(96, 154, 187, 0.1);
 }
 
-/* Loading Overlay */
+/* ── Loading ────────────────────────────────────────────────────────────────── */
 .loading-overlay {
   flex: 1;
   display: flex;
@@ -284,7 +310,6 @@ function printInvoice() {
   align-items: center;
   justify-content: center;
   gap: 1rem;
-  background: white;
 }
 
 .spinner {
@@ -297,10 +322,7 @@ function printInvoice() {
 }
 
 @keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
+  to {
     transform: rotate(360deg);
   }
 }
@@ -311,14 +333,14 @@ function printInvoice() {
   margin: 0;
 }
 
-/* Invoice Content */
+/* ── Invoice Content ────────────────────────────────────────────────────────── */
 .invoice-content {
   height: 100%;
   display: flex;
   flex-direction: column;
 }
 
-/* Header */
+/* ── Header Bar ─────────────────────────────────────────────────────────────── */
 .invoice-header {
   display: flex;
   align-items: center;
@@ -334,7 +356,14 @@ function printInvoice() {
   gap: 1rem;
 }
 
-.btn-icon {
+.invoice-header h2 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #051b3a;
+}
+
+.back-btn {
   width: 40px;
   height: 40px;
   border: none;
@@ -348,19 +377,13 @@ function printInvoice() {
   justify-content: center;
 }
 
-.btn-icon:hover {
+.back-btn:hover {
   background: #609abb;
   color: white;
   transform: translateX(-3px);
 }
 
-.invoice-header h2 {
-  margin: 0;
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: #051b3a;
-}
-
+/* ── Action Buttons ─────────────────────────────────────────────────────────── */
 .action-buttons {
   display: flex;
   gap: 0.75rem;
@@ -407,7 +430,7 @@ function printInvoice() {
   font-size: 1.1rem;
 }
 
-/* Invoice Document */
+/* ── Invoice Document (preview) ─────────────────────────────────────────────── */
 .invoice-document {
   flex: 1;
   overflow-y: auto;
@@ -415,7 +438,7 @@ function printInvoice() {
   background: white;
 }
 
-/* Restaurant Header */
+/* ── Restaurant Header ──────────────────────────────────────────────────────── */
 .restaurant-header {
   text-align: center;
   margin-bottom: 2rem;
@@ -439,7 +462,7 @@ function printInvoice() {
 }
 
 .restaurant-header h1 {
-  margin: 0 0 0.5rem 0;
+  margin: 0 0 0.5rem;
   font-size: 2rem;
   font-weight: 800;
   color: #051b3a;
@@ -453,7 +476,7 @@ function printInvoice() {
   font-weight: 600;
 }
 
-/* Info Section */
+/* ── Info Grid ──────────────────────────────────────────────────────────────── */
 .invoice-info-section {
   margin-bottom: 1.5rem;
 }
@@ -509,7 +532,7 @@ function printInvoice() {
   width: fit-content;
 }
 
-/* Notes Section */
+/* ── Notes ──────────────────────────────────────────────────────────────────── */
 .notes-section {
   margin-bottom: 1.5rem;
   padding: 1rem;
@@ -523,10 +546,6 @@ function printInvoice() {
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 0.5rem;
-}
-
-.notes-icon {
-  font-size: 1rem;
 }
 
 .notes-label {
@@ -544,13 +563,13 @@ function printInvoice() {
   line-height: 1.5;
 }
 
-/* Products Section */
+/* ── Products ───────────────────────────────────────────────────────────────── */
 .products-section {
   margin-bottom: 2rem;
 }
 
 .products-section h3 {
-  margin: 0 0 1rem 0;
+  margin: 0 0 1rem;
   font-size: 1.1rem;
   font-weight: 700;
   color: #051b3a;
@@ -565,7 +584,6 @@ function printInvoice() {
 .products-table {
   width: 100%;
   border-collapse: collapse;
-  background: white;
 }
 
 .products-table thead {
@@ -595,11 +613,9 @@ function printInvoice() {
 .text-left {
   text-align: left;
 }
-
 .text-center {
   text-align: center;
 }
-
 .text-right {
   text-align: right;
 }
@@ -611,16 +627,9 @@ function printInvoice() {
 }
 
 .product-notes {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
   font-size: 0.8rem;
   color: #b4cbd8;
   font-style: italic;
-}
-
-.note-icon {
-  font-size: 0.8rem;
 }
 
 .quantity-badge {
@@ -632,6 +641,7 @@ function printInvoice() {
   font-size: 0.8rem;
   font-weight: 600;
   min-width: 40px;
+  text-align: center;
 }
 
 .price-cell {
@@ -639,7 +649,7 @@ function printInvoice() {
   color: #10b981;
 }
 
-/* Totals Section */
+/* ── Totals ─────────────────────────────────────────────────────────────────── */
 .totals-section {
   margin-bottom: 2rem;
 }
@@ -668,13 +678,11 @@ function printInvoice() {
   color: #5d7a90;
   font-weight: 500;
 }
-
 .total-value {
   font-size: 0.9rem;
   color: #051b3a;
   font-weight: 600;
 }
-
 .tax-row .total-value {
   color: #f59e0b;
 }
@@ -691,7 +699,7 @@ function printInvoice() {
   color: #10b981;
 }
 
-/* Invoice Footer */
+/* ── Invoice Footer ─────────────────────────────────────────────────────────── */
 .invoice-footer {
   text-align: center;
   padding-top: 1.5rem;
@@ -699,7 +707,7 @@ function printInvoice() {
 }
 
 .footer-thanks {
-  margin: 0 0 0.25rem 0;
+  margin: 0 0 0.25rem;
   font-size: 1rem;
   font-weight: 600;
   color: #051b3a;
@@ -712,13 +720,10 @@ function printInvoice() {
   font-style: italic;
 }
 
-/* Modal */
+/* ── Modal ──────────────────────────────────────────────────────────────────── */
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background: rgba(5, 27, 58, 0.6);
   backdrop-filter: blur(5px);
   display: flex;
@@ -764,9 +769,6 @@ function printInvoice() {
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.icon-emoji {
   font-size: 1.2rem;
 }
 
@@ -805,7 +807,6 @@ function printInvoice() {
 
 .confirm-icon {
   font-size: 3rem;
-  margin-bottom: 1rem;
   background: #d1fae5;
   width: 70px;
   height: 70px;
@@ -817,7 +818,7 @@ function printInvoice() {
 }
 
 .confirm-message {
-  margin: 0 0 1.5rem 0;
+  margin: 0 0 1.5rem;
   font-size: 1rem;
   color: #5d7a90;
   line-height: 1.5;
@@ -861,17 +862,9 @@ function printInvoice() {
 .btn-cancel,
 .btn-success {
   flex: 1;
-  display: flex;
-  align-items: center;
   justify-content: center;
-  gap: 0.5rem;
   padding: 0.875rem;
-  border: none;
-  border-radius: 12px;
   font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
 }
 
 .btn-cancel {
@@ -913,32 +906,7 @@ function printInvoice() {
   animation: spin 0.6s linear infinite;
 }
 
-/* Print styles */
-@media print {
-  .no-print {
-    display: none !important;
-  }
-
-  .invoice-detail-container {
-    box-shadow: none;
-    border-radius: 0;
-  }
-
-  .invoice-document {
-    padding: 0;
-  }
-
-  .products-table {
-    border: 1px solid #000;
-  }
-
-  .products-table th,
-  .products-table td {
-    border: 1px solid #000;
-  }
-}
-
-/* Responsive */
+/* ── Responsive ─────────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .invoice-header {
     flex-direction: column;
@@ -949,33 +917,26 @@ function printInvoice() {
   .action-buttons {
     width: 100%;
   }
-
   .btn {
     flex: 1;
     justify-content: center;
   }
-
   .invoice-document {
     padding: 1rem;
   }
-
   .info-grid {
     grid-template-columns: 1fr;
   }
-
   .table-container {
     overflow-x: auto;
   }
-
   .products-table {
     min-width: 600px;
   }
-
   .totals-card {
     margin-left: 0;
     width: 100%;
   }
-
   .modal-footer {
     flex-direction: column;
   }
@@ -985,23 +946,15 @@ function printInvoice() {
   .invoice-header h2 {
     font-size: 1.1rem;
   }
-
   .btn-text {
     display: none;
   }
-
-  .btn-icon {
-    margin-right: 0;
-  }
-
   .restaurant-header h1 {
     font-size: 1.5rem;
   }
-
   .total-amount {
     font-size: 1.2rem;
   }
-
   .amount-value {
     font-size: 1.5rem;
   }
