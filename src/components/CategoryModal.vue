@@ -292,6 +292,8 @@ function handleClose() {
   align-items: center;
   z-index: 1000;
   padding: 1rem;
+  overflow-y: auto;
+  box-sizing: border-box;
 }
 
 .modal-container {
@@ -299,10 +301,13 @@ function handleClose() {
   border-radius: 24px;
   width: 100%;
   max-width: 520px;
+  max-height: calc(100dvh - 2rem);
   box-shadow: 0 25px 50px -12px rgba(5, 27, 58, 0.25);
   position: relative;
   overflow: hidden;
   animation: modalAppear 0.3s ease;
+  display: flex;
+  flex-direction: column;
 }
 
 @keyframes modalAppear {
@@ -386,6 +391,8 @@ function handleClose() {
 /* Form Styles */
 .modal-form {
   padding: 1.5rem;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .form-group {
@@ -660,8 +667,15 @@ function handleClose() {
 
 /* Responsive */
 @media (max-width: 640px) {
+  .modal-overlay {
+    align-items: flex-start;
+    padding: 0.75rem;
+  }
+
   .modal-container {
     max-width: 100%;
+    max-height: calc(100dvh - 1.5rem);
+    border-radius: 18px;
   }
 
   .modal-header {
