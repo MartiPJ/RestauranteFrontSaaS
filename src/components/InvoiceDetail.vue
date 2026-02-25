@@ -229,10 +229,10 @@ function handleClose() {
               <span class="total-label">Subtotal:</span>
               <span class="total-value">{{ formatCurrency(invoice.subtotal) }}</span>
             </div>
-            <div class="total-row tax-row">
+            <!-- <div class="total-row tax-row">
               <span class="total-label">Impuesto (IVA):</span>
               <span class="total-value">{{ formatCurrency(invoice.tax) }}</span>
-            </div>
+            </div> -->
             <div class="total-row final-total">
               <span class="total-label">Total a Pagar:</span>
               <span class="total-amount">{{ formatCurrency(invoice.total) }}</span>

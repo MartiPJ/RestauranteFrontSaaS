@@ -35,11 +35,6 @@
       </div>
 
       <div class="order-header-right">
-        <div class="order-timer" v-if="isActive" :class="{ 'timer-warning': elapsedMinutes > 15 }">
-          <span class="timer-icon">⏱️</span>
-          <span class="timer-time">{{ elapsedTime }}</span>
-        </div>
-
         <div class="order-actions">
           <button
             v-for="action in availableActions"
@@ -105,8 +100,10 @@
                 @click="emit('updateItemStatus', product.id, status.value)"
                 class="btn-status"
                 :class="[`btn-status-${status.value}`, { active: product.status === status.value }]"
-                :disabled="product.status === status.value"
-                :title="status.label"
+                :disabled="
+                  product.status === status.value || product.status === OrderItemStatus.CANCELLED
+                "
+                :title="getButtonTitle(product.status, status.label)"
               >
                 <span class="status-icon">{{ status.icon }}</span>
                 <span class="status-label">{{ status.label }}</span>
@@ -285,6 +282,14 @@ const availableActions = computed(() => {
 
   return actions
 })
+
+// Función para obtener el título del botón
+const getButtonTitle = (productStatus: OrderItemStatus, buttonLabel: string) => {
+  if (productStatus === OrderItemStatus.CANCELLED) {
+    return 'Producto cancelado - No se puede modificar'
+  }
+  return buttonLabel
+}
 </script>
 
 <style scoped>
@@ -868,5 +873,62 @@ const availableActions = computed(() => {
   .product-item {
     cursor: default;
   }
+}
+
+/* Estilo para productos cancelados */
+.product-cancelled {
+  background: #f8fafc;
+  opacity: 0.8;
+  border: 2px dashed #d1d5db;
+}
+
+.bar-cancelled {
+  background: #d1d5db;
+}
+
+.quantity-cancelled {
+  background: #e4e7eb;
+}
+
+.quantity-cancelled .quantity-number {
+  color: #6b7280;
+  text-decoration: line-through;
+}
+
+.product-cancelled .product-name {
+  color: #6b7280;
+  text-decoration: line-through;
+}
+
+/* Estilo para botones deshabilitados */
+.btn-status:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #e4e7eb;
+  border-color: #d1d5db;
+  color: #6b7280;
+  transform: none;
+  pointer-events: none;
+}
+
+/* Tooltip para botones deshabilitados */
+.btn-status:disabled:hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #051b3a;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.btn-status {
+  position: relative;
 }
 </style>

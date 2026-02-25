@@ -309,10 +309,6 @@ export function generateInvoicePrintHtml(inv: InvoicePrintData): string {
           <span class="total-lbl">Subtotal</span>
           <span class="total-val">${formatCurrency(inv.subtotal)}</span>
         </div>
-        <div class="total-row">
-          <span class="total-lbl">Impuesto (IVA)</span>
-          <span class="tax-val">${formatCurrency(inv.tax)}</span>
-        </div>
         <div class="total-row final-row">
           <span class="total-lbl">Total a pagar</span>
           <span class="final-amount">${formatCurrency(inv.total)}</span>

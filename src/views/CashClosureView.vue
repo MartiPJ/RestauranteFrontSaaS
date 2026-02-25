@@ -233,13 +233,13 @@ onMounted(fetchPaidOrders)
           </div>
         </div>
 
-        <div class="summary-card tax">
+        <!-- <div class="summary-card tax">
           <div class="summary-icon">📊</div>
           <div class="summary-info">
             <div class="summary-value">{{ formatCurrency(totalTax) }}</div>
             <div class="summary-label">Impuestos</div>
           </div>
-        </div>
+        </div> -->
 
         <div class="summary-card orders">
           <div class="summary-icon">📋</div>
@@ -376,10 +376,10 @@ onMounted(fetchPaidOrders)
                       <span>Subtotal</span>
                       <span>{{ formatCurrency(getOrderDetail(order.id)!.subtotal) }}</span>
                     </div>
-                    <div class="detail-total-row">
+                    <!-- <div class="detail-total-row">
                       <span>Impuestos (12%)</span>
                       <span>{{ formatCurrency(getOrderDetail(order.id)!.tax) }}</span>
-                    </div>
+                    </div> -->
                     <div class="detail-total-row final">
                       <span>Total</span>
                       <span>{{ formatCurrency(getOrderDetail(order.id)!.total) }}</span>
@@ -402,10 +402,10 @@ onMounted(fetchPaidOrders)
                       <span>Subtotal</span>
                       <span>{{ formatCurrency(order.subtotal) }}</span>
                     </div>
-                    <div class="detail-total-row">
+                    <!-- <div class="detail-total-row">
                       <span>Impuestos</span>
                       <span>{{ formatCurrency(order.tax) }}</span>
-                    </div>
+                    </div> -->
                     <div class="detail-total-row final">
                       <span>Total</span>
                       <span>{{ formatCurrency(order.total) }}</span>

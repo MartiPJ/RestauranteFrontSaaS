@@ -304,10 +304,10 @@ const formattedDate = computed(() => {
                 <span>Subtotal</span>
                 <span>${{ parseFloat(order.subtotal).toFixed(2) }}</span>
               </div>
-              <div class="total-row">
+              <!-- <div class="total-row">
                 <span>Impuestos</span>
                 <span>${{ parseFloat(order.tax).toFixed(2) }}</span>
-              </div>
+              </div> -->
               <div class="total-row final">
                 <span>Total</span>
                 <span class="total-amount">${{ parseFloat(order.total).toFixed(2) }}</span>

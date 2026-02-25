@@ -127,10 +127,10 @@ const isOrderSelected = computed(() => {
             <span class="summary-label">Subtotal</span>
             <span class="summary-value">{{ formatCurrency(order.subtotal) }}</span>
           </div>
-          <div class="summary-row tax">
+          <!-- <div class="summary-row tax">
             <span class="summary-label">Impuesto</span>
             <span class="summary-value">{{ formatCurrency(order.tax) }}</span>
-          </div>
+          </div> -->
         </div>
       </div>
     </div>
