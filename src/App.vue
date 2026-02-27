@@ -16,9 +16,7 @@ import NavbarComponent from '@/components/NavbarComponent.vue'
 const route = useRoute()
 
 const shouldShowNavbar = computed(() => {
-  const noNavbarRoutes = ['/login', '/admin-login', '/register', '/forbidden']
-  const isNotFoundRoute = route.name === 'NotFound'
-  return !noNavbarRoutes.includes(route.path) && !isNotFoundRoute
+  return route.meta.requiresAuth === true
 })
 
 // Estado del sidebar
