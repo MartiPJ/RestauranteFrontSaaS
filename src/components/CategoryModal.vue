@@ -7,6 +7,7 @@ interface Props {
   show: boolean
   category?: Category | null
   mode: 'create' | 'edit'
+  existingCategories?: Category[]
 }
 
 interface Emits {
@@ -103,6 +104,17 @@ function validate(): boolean {
   } else if (form.value.displayOrder > 999) {
     errors.value.displayOrder = 'El orden no puede ser mayor a 999'
     isValid = false
+  } else if (props.mode === 'edit') {
+    // ← Validación de orden duplicado SOLO en modo edición
+    const isDuplicate = (props.existingCategories ?? []).some((cat) => {
+      // En edición, excluimos la categoría actual
+      const isSelf = props.mode === 'edit' && props.category?.id === cat.id
+      return !isSelf && cat.displayOrder === form.value.displayOrder
+    })
+    if (isDuplicate) {
+      errors.value.displayOrder = `El orden #${form.value.displayOrder} ya está ocupado por otra categoría`
+      isValid = false
+    }
   }
 
   return isValid

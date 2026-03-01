@@ -318,6 +318,7 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
       :show="showModal"
       :category="selectedCategory"
       :mode="modalMode"
+      :existing-categories="categoryStore.categories"
       @close="showModal = false"
       @save="handleSave"
     />
