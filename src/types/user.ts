@@ -65,6 +65,7 @@ export interface UpdateUserPayload {
   name: string
   email: string
   roles: ValidRoles[]
+  isActive?: boolean
 }
 
 export interface UsersState {

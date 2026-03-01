@@ -160,11 +160,19 @@
                 <span class="btn-icon">✏️</span>
               </button>
               <button
-                class="action-btn action-btn--delete"
-                title="Eliminar usuario"
-                @click="openDelete(user)"
+                class="action-btn"
+                :class="user.isActive ? 'action-btn--deactivate' : 'action-btn--activate'"
+                :title="
+                  !canDeactivate(user)
+                    ? 'No se puede desactivar el único usuario activo'
+                    : user.isActive
+                      ? 'Desactivar usuario'
+                      : 'Activar usuario'
+                "
+                :disabled="!canDeactivate(user)"
+                @click="openToggle(user)"
               >
-                <span class="btn-icon">🗑️</span>
+                <span class="btn-icon">{{ user.isActive ? '🔒' : '🔓' }}</span>
               </button>
             </div>
           </div>
@@ -217,16 +225,20 @@
       @submit="handleFormSubmit"
     />
 
-    <!-- Delete Confirmation Modal -->
+    <!-- Actualizar el estado del usuario -->
     <ConfirmationModal
-      :show="deleteModal.isOpen"
-      title="¿Eliminar usuario?"
-      :message="`¿Estás seguro de que deseas eliminar al usuario ${deleteModal.user?.name || ''}? Esta acción no se puede deshacer.`"
-      confirm-text="Eliminar"
+      :show="toggleModal.isOpen"
+      :title="toggleModal.user?.isActive ? '¿Desactivar usuario?' : '¿Activar usuario?'"
+      :message="
+        toggleModal.user?.isActive
+          ? `¿Deseas desactivar a ${toggleModal.user?.name || ''}? No podrá ingresar al sistema.`
+          : `¿Deseas activar a ${toggleModal.user?.name || ''}? Podrá ingresar al sistema nuevamente.`
+      "
+      :confirm-text="toggleModal.user?.isActive ? 'Desactivar' : 'Activar'"
       cancel-text="Cancelar"
-      type="danger"
-      @confirm="handleDeleteConfirm"
-      @cancel="closeDeleteModal"
+      :type="toggleModal.user?.isActive ? 'danger' : 'success'"
+      @confirm="handleToggleConfirm"
+      @cancel="closeToggleModal"
     />
   </div>
 </template>
@@ -251,10 +263,39 @@ const formModal = reactive({
   user: null as FullUser | null,
 })
 
-const deleteModal = reactive({
+// Renombra deleteModal → toggleModal
+const toggleModal = reactive({
   isOpen: false,
   user: null as FullUser | null,
 })
+
+// Computed: solo hay 1 usuario activo
+const activeUsersCount = computed(() => usersStore.users.filter((u) => u.isActive).length)
+
+function canDeactivate(user: FullUser): boolean {
+  // No se puede desactivar si es el único activo
+  return !(user.isActive && activeUsersCount.value <= 1)
+}
+
+function openToggle(user: FullUser) {
+  toggleModal.user = user
+  toggleModal.isOpen = true
+}
+
+function closeToggleModal() {
+  toggleModal.isOpen = false
+  toggleModal.user = null
+}
+
+async function handleToggleConfirm() {
+  if (!toggleModal.user) return
+  try {
+    await usersStore.toggleUserActive(toggleModal.user.id, !toggleModal.user.isActive)
+    closeToggleModal()
+  } catch {
+    // Error shown in store
+  }
+}
 
 onMounted(() => {
   usersStore.fetchUsers(1)
@@ -343,19 +384,9 @@ function openEdit(user: FullUser) {
   formModal.isOpen = true
 }
 
-function openDelete(user: FullUser) {
-  deleteModal.user = user
-  deleteModal.isOpen = true
-}
-
 function closeFormModal() {
   formModal.isOpen = false
   formModal.user = null
-}
-
-function closeDeleteModal() {
-  deleteModal.isOpen = false
-  deleteModal.user = null
 }
 
 async function handleFormSubmit(payload: CreateUserPayload | UpdateUserPayload) {
@@ -372,17 +403,6 @@ async function handleFormSubmit(payload: CreateUserPayload | UpdateUserPayload) 
     formModalRef.value?.setError(error.message || 'Error al procesar la solicitud')
   } finally {
     formModalRef.value?.setSubmitting(false)
-  }
-}
-
-async function handleDeleteConfirm() {
-  if (!deleteModal.user) return
-
-  try {
-    await usersStore.deleteUser(deleteModal.user.id)
-    closeDeleteModal()
-  } catch {
-    // Error is shown in store
   }
 }
 
@@ -826,16 +846,34 @@ async function changePage(page: number) {
   transform: translateY(-2px);
 }
 
-.action-btn--delete {
-  color: #ef4444;
-  border-color: #fee2e2;
+.action-btn--deactivate {
+  color: #f59e0b;
+  border-color: #fef3c7;
 }
 
-.action-btn--delete:hover {
-  background: #ef4444;
-  border-color: #ef4444;
+.action-btn--deactivate:hover:not(:disabled) {
+  background: #f59e0b;
+  border-color: #f59e0b;
   color: white;
   transform: translateY(-2px);
+}
+
+.action-btn--activate {
+  color: #10b981;
+  border-color: #d1fae5;
+}
+
+.action-btn--activate:hover:not(:disabled) {
+  background: #10b981;
+  border-color: #10b981;
+  color: white;
+  transform: translateY(-2px);
+}
+
+.action-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none !important;
 }
 
 /* ── Skeleton ── */
@@ -1101,6 +1139,15 @@ async function changePage(page: number) {
 
   .action-btn {
     flex: 1;
+  }
+
+  .action-btn--delete:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    transform: none;
+    background: white;
+    color: #ef4444;
+    border-color: #fee2e2;
   }
 }
 </style>

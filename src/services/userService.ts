@@ -13,10 +13,15 @@ export const usersService = {
     return api.post<FullUser>('/api/auth/register', payload)
   },
 
-  async updateUser(id: string, payload: UpdateUserPayload): Promise<FullUser> {
+  // Actualizamos el método updateUser para aceptar isActive
+  async updateUser(
+    id: string,
+    payload: UpdateUserPayload & { isActive?: boolean },
+  ): Promise<FullUser> {
     return api.patch<FullUser>(`/api/auth/users/${id}`, payload)
   },
 
+  // Eliminamos el método deleteUser ya que no lo usaremos
   async deleteUser(id: string): Promise<void> {
     return api.delete<void>(`/api/auth/users/${id}`)
   },

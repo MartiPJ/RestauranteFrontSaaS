@@ -4,7 +4,6 @@ const API_URL = import.meta.env.VITE_API_URL
 function getAuthToken(): string | null {
   return localStorage.getItem('authToken')
 }
-
 async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const token = getAuthToken()
 
@@ -17,12 +16,20 @@ async function request<T>(endpoint: string, options?: RequestInit): Promise<T> {
     ...options,
   })
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}))
-    throw new Error(error.message || `Error en la petición: ${response.status}`)
+  if (response.status === 401) {
+    localStorage.removeItem('authToken')
+    window.location.href = '/login'
+    throw new Error('Sesión expirada o usuario inactivo')
   }
 
-  return response.json()
+  const text = await response.text()
+  const data = text ? JSON.parse(text) : null
+
+  if (!response.ok) {
+    throw new Error(data?.message || `Error en la petición: ${response.status}`)
+  }
+
+  return data as T
 }
 
 export default {

@@ -57,7 +57,7 @@ export const useUsersStore = defineStore('users', {
       }
     },
 
-    async updateUser(id: string, payload: UpdateUserPayload) {
+    async updateUser(id: string, payload: UpdateUserPayload & { isActive?: boolean }) {
       this.isLoading = true
       this.error = null
       try {
@@ -73,25 +73,50 @@ export const useUsersStore = defineStore('users', {
       }
     },
 
-    async deleteUser(id: string) {
+    // Versión anterior del método toggleUserActive, que usaba updateUser sin isActive
+    async toggleUserActive(id: string, isActive: boolean) {
       this.isLoading = true
       this.error = null
       try {
-        await usersService.deleteUser(id)
-        this.users = this.users.filter((u) => u.id !== id)
-        if (this.meta) {
-          this.meta.totalItems--
-          if (this.users.length === 0 && this.currentPage > 1) {
-            await this.fetchUsers(this.currentPage - 1)
-          }
-        }
+        const user = this.users.find((u) => u.id === id)
+        if (!user) throw new Error('Usuario no encontrado')
+
+        const updated = await usersService.updateUser(id, {
+          name: user.name,
+          email: user.email,
+          roles: user.roles,
+          isActive,
+        })
+        const idx = this.users.findIndex((u) => u.id === id)
+        if (idx !== -1) this.users[idx] = updated
+        return updated
       } catch (error: any) {
-        this.error = error.message || 'Error al eliminar el usuario'
+        this.error = error.message || 'Error al actualizar el usuario'
         throw error
       } finally {
         this.isLoading = false
       }
     },
+
+    // async deleteUser(id: string) {
+    //   this.isLoading = true
+    //   this.error = null
+    //   try {
+    //     await usersService.deleteUser(id)
+    //     this.users = this.users.filter((u) => u.id !== id)
+    //     if (this.meta) {
+    //       this.meta.totalItems--
+    //       if (this.users.length === 0 && this.currentPage > 1) {
+    //         await this.fetchUsers(this.currentPage - 1)
+    //       }
+    //     }
+    //   } catch (error: any) {
+    //     this.error = error.message || 'Error al eliminar el usuario'
+    //     throw error
+    //   } finally {
+    //     this.isLoading = false
+    //   }
+    // },
 
     clearError() {
       this.error = null
