@@ -40,13 +40,13 @@ const routes: RouteRecordRaw[] = [
     path: '/Categories',
     name: 'categories',
     component: CategoryView,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, allowedRoles: ['admin', 'manager'] },
   },
   {
     path: '/Products',
     name: 'products',
     component: ProductView,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, allowedRoles: ['admin', 'manager'] },
   },
   {
     path: '/Orders',
@@ -64,19 +64,19 @@ const routes: RouteRecordRaw[] = [
     path: '/Invoices',
     name: 'invoices',
     component: InvoiceView,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, allowedRoles: ['cashier', 'admin', 'manager'] },
   },
   {
     path: '/Users',
     name: 'users',
     component: UsersView,
-    meta: { requiresAuth: true, allowedRoles: ['admin', 'manager'] },
+    meta: { requiresAuth: true, allowedRoles: ['admin'] },
   },
   {
     path: '/cash-closure',
     name: 'cash-closure',
     component: CashClosureView,
-    meta: { requiresAuth: true, allowedRoles: ['admin', 'manager'] },
+    meta: { requiresAuth: true, allowedRoles: ['admin'] },
   },
 ]
 

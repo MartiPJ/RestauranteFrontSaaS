@@ -117,6 +117,7 @@ const allSections: DashboardSection[] = [
     icon: CategoriesImage,
     route: '/Categories',
     colorClass: 'color-tertiary',
+    roles: ['admin', 'manager'],
   },
   {
     id: 'Productos',
@@ -125,6 +126,7 @@ const allSections: DashboardSection[] = [
     icon: ProductsImage,
     route: '/Products',
     colorClass: 'color-primary',
+    roles: ['admin', 'manager'],
   },
   {
     id: 'Kitchen',
@@ -141,6 +143,7 @@ const allSections: DashboardSection[] = [
     icon: InvoiceImage,
     route: '/Invoices',
     colorClass: 'color-tertiary',
+    roles: ['cashier', 'admin', 'manager'],
   },
   {
     id: 'Users',
@@ -149,7 +152,7 @@ const allSections: DashboardSection[] = [
     icon: UsersImage,
     route: '/Users',
     colorClass: 'color-tertiary',
-    roles: ['admin', 'manager'],
+    roles: ['admin'],
   },
   {
     id: 'CashClosure',
@@ -158,7 +161,7 @@ const allSections: DashboardSection[] = [
     icon: CashClosureImage,
     route: '/cash-closure',
     colorClass: 'color-tertiary',
-    roles: ['admin', 'manager'],
+    roles: ['admin'],
   },
 ]
 
