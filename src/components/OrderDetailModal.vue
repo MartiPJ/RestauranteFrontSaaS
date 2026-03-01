@@ -2,7 +2,7 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { useOrderStore } from '@/stores/orderStore'
-import type { Order, OrderProduct } from '@/types/order'
+import type { Order } from '@/types/order'
 import { OrderItemStatus, OrderStatus } from '@/types/order'
 
 const orderStore = useOrderStore()
@@ -276,22 +276,35 @@ const formattedDate = computed(() => {
 
                   <!-- Status Actions -->
                   <div class="item-actions">
-                    <label class="actions-label">Cambiar estado:</label>
+                    <label class="actions-label">Estado:</label>
                     <div class="status-buttons">
-                      <button
-                        v-for="status in statusOptions"
-                        :key="status.value"
-                        @click="handleUpdateItemStatus(item.id, status.value)"
-                        class="status-btn"
-                        :class="{ active: item.status === status.value }"
-                        :style="{
-                          borderColor: status.color,
-                          backgroundColor: item.status === status.value ? status.color : 'white',
-                          color: item.status === status.value ? 'white' : status.color,
-                        }"
-                      >
-                        {{ status.label }}
-                      </button>
+                      <!-- Solo mostrar botón Cancelar si el item está Pendiente -->
+                      <template v-if="item.status === OrderItemStatus.PENDING">
+                        <button
+                          @click="handleUpdateItemStatus(item.id, OrderItemStatus.CANCELLED)"
+                          class="status-btn"
+                          :style="{
+                            borderColor: '#ef4444',
+                            backgroundColor: 'white',
+                            color: '#ef4444',
+                          }"
+                        >
+                          Cancelar
+                        </button>
+                      </template>
+                      <!-- Si no está pendiente, solo mostrar el estado actual (solo lectura) -->
+                      <template v-else>
+                        <span
+                          class="status-readonly"
+                          :style="{
+                            backgroundColor: getStatusBgColor(item.status),
+                            color: getStatusColor(item.status),
+                            borderColor: getStatusColor(item.status),
+                          }"
+                        >
+                          {{ getStatusLabel(item.status) }}
+                        </span>
+                      </template>
                     </div>
                   </div>
                 </div>
@@ -302,7 +315,7 @@ const formattedDate = computed(() => {
             <div class="totals-card">
               <div class="total-row">
                 <span>Subtotal</span>
-                <span>${{ parseFloat(order.subtotal).toFixed(2) }}</span>
+                <span>${{ parseFloat(order?.subtotal ?? '0').toFixed(2) }}</span>
               </div>
               <!-- <div class="total-row">
                 <span>Impuestos</span>
@@ -310,7 +323,7 @@ const formattedDate = computed(() => {
               </div> -->
               <div class="total-row final">
                 <span>Total</span>
-                <span class="total-amount">${{ parseFloat(order.total).toFixed(2) }}</span>
+                <span class="total-amount">${{ parseFloat(order?.total ?? '0').toFixed(2) }}</span>
               </div>
             </div>
           </div>
@@ -912,5 +925,14 @@ const formattedDate = computed(() => {
     flex-direction: column;
     align-items: flex-start;
   }
+}
+
+.status-readonly {
+  padding: 0.5rem 1rem;
+  border: 2px solid;
+  border-radius: 30px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: inline-block;
 }
 </style>
