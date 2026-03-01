@@ -40,11 +40,13 @@ const routes: RouteRecordRaw[] = [
     path: '/Categories',
     name: 'categories',
     component: CategoryView,
+    meta: { requiresAuth: true },
   },
   {
     path: '/Products',
     name: 'products',
     component: ProductView,
+    meta: { requiresAuth: true },
   },
   {
     path: '/Orders',
