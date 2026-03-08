@@ -40,13 +40,13 @@ const routes: RouteRecordRaw[] = [
     path: '/Categories',
     name: 'categories',
     component: CategoryView,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, allowedRoles: ['admin', 'manager'] },
   },
   {
     path: '/Products',
     name: 'products',
     component: ProductView,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, allowedRoles: ['admin', 'manager'] },
   },
   {
     path: '/Orders',

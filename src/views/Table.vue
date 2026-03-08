@@ -8,6 +8,7 @@ import TableModal from '@/components/TableModal.vue'
 import MenuModal from '@/components/MenuModal.vue'
 import type { Table, CreateTableDTO } from '@/types/table'
 import { TableStatus } from '@/types/table'
+import ConfirmationModal from '@/components/Confirmationmodal.vue'
 
 const tableStore = useTableStore()
 const orderStore = useOrderStore()
@@ -21,6 +22,8 @@ const searchQuery = ref('')
 const showToast = ref(false)
 const toastMessage = ref('')
 const toastType = ref<'success' | 'error'>('success')
+const showConfirmDelete = ref(false)
+const tableToDeleteId = ref<string | null>(null)
 
 onMounted(async () => {
   await tableStore.fetchTables()
@@ -92,16 +95,20 @@ const handleCreateOrder = async (
       return
     }
 
+    // Refrescamos las órdenes antes de decidir para tener el estado más reciente
+    await orderStore.fetchOrders()
+
     const openOrdersForTable = orderStore.orders.filter(
       (order) => order.table?.id === selectedTable.value?.id && order.status === 'open',
     )
 
-    const existingOrder = openOrdersForTable
+    const existingOpenOrder = openOrdersForTable
       .slice()
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
 
-    if (existingOrder) {
-      await orderStore.addOrderItems(existingOrder.id, { items })
+    if (existingOpenOrder) {
+      // Solo se agregan items si la orden más reciente está en "open"
+      await orderStore.addOrderItems(existingOpenOrder.id, { items })
 
       if (selectedTable.value.status !== TableStatus.OCCUPIED) {
         await tableStore.updateTable(selectedTable.value.id, { status: TableStatus.OCCUPIED })
@@ -109,17 +116,23 @@ const handleCreateOrder = async (
 
       triggerToast('¡Items agregados a la orden existente!', 'success')
     } else {
+      // No hay orden "open": puede estar in_progress, closed, u otro estado
+      // Se libera la mesa temporalmente para que el backend permita crear la nueva orden
+      const wasOccupied = selectedTable.value.status === TableStatus.OCCUPIED
+
+      if (wasOccupied) {
+        await tableStore.updateTable(selectedTable.value.id, { status: TableStatus.AVAILABLE })
+      }
+
       await orderStore.createOrder({
         tableId: selectedTable.value.id,
         items,
         notes: orderNotes,
       })
 
-      if (selectedTable.value.status !== TableStatus.OCCUPIED) {
-        await tableStore.updateTable(selectedTable.value.id, { status: TableStatus.OCCUPIED })
-      }
+      await tableStore.updateTable(selectedTable.value.id, { status: TableStatus.OCCUPIED })
 
-      triggerToast('¡Orden creada exitosamente!', 'success')
+      triggerToast('¡Nueva orden creada exitosamente!', 'success')
     }
 
     showMenuModal.value = false
@@ -127,17 +140,25 @@ const handleCreateOrder = async (
 
     await Promise.all([orderStore.fetchOrders(), tableStore.fetchTables()])
   } catch (error: any) {
-    triggerToast(error.message || 'Error al procesar la orden')
+    triggerToast(error.message || 'Error al procesar la orden', 'error')
   }
 }
 
-const handleDelete = async (id: string) => {
-  if (confirm('¿Estás seguro de eliminar esta mesa?')) {
-    try {
-      await tableStore.deleteTable(id)
-    } catch (error: any) {
-      alert(error.message || 'Error al eliminar la mesa')
-    }
+const handleDelete = (id: string) => {
+  tableToDeleteId.value = id
+  showConfirmDelete.value = true
+}
+
+const confirmDelete = async () => {
+  if (!tableToDeleteId.value) return
+  try {
+    await tableStore.deleteTable(tableToDeleteId.value)
+    triggerToast('Mesa eliminada correctamente', 'success')
+  } catch (error: any) {
+    triggerToast(error.message || 'Error al eliminar la mesa', 'error')
+  } finally {
+    showConfirmDelete.value = false
+    tableToDeleteId.value = null
   }
 }
 
@@ -325,6 +346,17 @@ const handleStatusChange = async (id: string, status: TableStatus) => {
       :is-for-takeout="false"
       @close="showMenuModal = false"
       @submit="handleCreateOrder"
+    />
+
+    <ConfirmationModal
+      :show="showConfirmDelete"
+      title="Eliminar Mesa"
+      message="¿Estás seguro de que deseas eliminar esta mesa? Esta acción no se puede deshacer."
+      confirm-text="Eliminar"
+      cancel-text="Cancelar"
+      type="danger"
+      @confirm="confirmDelete"
+      @cancel="showConfirmDelete = false"
     />
   </div>
 </template>
