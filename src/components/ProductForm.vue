@@ -96,9 +96,17 @@
             required
             placeholder="https://ejemplo.com/imagen.jpg"
           />
+          <!-- Mensaje de error para URL inválida -->
+          <span
+            v-if="formData.imageUrl && !isValidImageUrl(formData.imageUrl)"
+            class="input-hint"
+            style="color: red"
+          >
+            URL inválida. Debe terminar en (.jpg, .png, .webp, etc.) o url inaccesible.
+          </span>
 
           <!-- Preview de imagen -->
-          <div v-if="formData.imageUrl" class="image-preview">
+          <div v-if="isValidImageUrl(formData.imageUrl)" class="image-preview">
             <div class="preview-header">
               <span class="preview-label">Vista previa:</span>
             </div>
@@ -162,7 +170,12 @@
             <span class="btn-icon">✕</span>
             <span class="btn-text">Cancelar</span>
           </button>
-          <button type="submit" class="btn btn-primary" :disabled="loading">
+          <!-- Desabilidatar botón de envío si la URL no es válida -->
+          <button
+            type="submit"
+            class="btn btn-primary"
+            :disabled="loading || !isValidImageUrl(formData.imageUrl)"
+          >
             <span class="btn-icon">{{ isEditing ? '✓' : '➕' }}</span>
             <span class="btn-text">
               {{ loading ? 'Guardando...' : isEditing ? 'Actualizar Producto' : 'Crear Producto' }}
@@ -230,12 +243,21 @@ watch(
 )
 
 function handleSubmit() {
+  if (!isValidImageUrl(formData.value.imageUrl)) {
+    alert('La URL debe ser una imagen válida (.jpg, .png, .webp, etc)')
+    return
+  }
+
   emit('submit', { ...formData.value })
 }
 
 function handleImageError(e: Event) {
   const target = e.target as HTMLImageElement
   target.src = 'https://via.placeholder.com/300x200?text=Error+al+cargar'
+}
+
+function isValidImageUrl(url: string): boolean {
+  return /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(url)
 }
 </script>
 

@@ -46,7 +46,7 @@ async function wakeBackend() {
     }
   }
 
-  const minimumTime = 4000
+  const minimumTime = 1000
   const elapsed = Date.now() - start
 
   if (elapsed < minimumTime) {
