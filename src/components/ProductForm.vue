@@ -1,7 +1,12 @@
 <!-- src/components/ProductForm.vue -->
 <template>
-  <div class="modal-overlay" @click.self="$emit('close')">
+  <div class="modal-overlay" @click.self="handleOverlayClick">
     <div class="modal-container">
+      <!-- Capa de carga -->
+      <div v-if="loading" class="loading-overlay">
+        <div class="loader"></div>
+        <p>Guardando cambios...</p>
+      </div>
       <!-- Header -->
       <div class="modal-header">
         <div class="header-icon">
@@ -15,7 +20,12 @@
             }}
           </p>
         </div>
-        <button class="close-btn" @click="$emit('close')" title="Cerrar">
+        <button
+          class="close-btn"
+          @click="!loading && $emit('close')"
+          :disabled="loading"
+          title="Cerrar"
+        >
           <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
@@ -166,7 +176,12 @@
 
         <!-- Acciones -->
         <div class="modal-actions">
-          <button type="button" class="btn btn-cancel" @click="$emit('close')">
+          <button
+            type="button"
+            class="btn btn-cancel"
+            @click="!loading && $emit('close')"
+            :disabled="loading"
+          >
             <span class="btn-icon">✕</span>
             <span class="btn-text">Cancelar</span>
           </button>
@@ -258,6 +273,11 @@ function handleImageError(e: Event) {
 
 function isValidImageUrl(url: string): boolean {
   return /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(url)
+}
+
+function handleOverlayClick() {
+  if (props.loading) return
+  emit('close')
 }
 </script>
 
@@ -747,6 +767,29 @@ function isValidImageUrl(url: string): boolean {
 
   .preview-container {
     background: #2a3644;
+  }
+  /* Estilos de la capa de carga */
+  .loading-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(3px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 24px;
+    z-index: 20;
+  }
+
+  .loader {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #e4f4fc;
+    border-top-color: #609abb;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-bottom: 0.5rem;
   }
 }
 </style>
