@@ -94,7 +94,6 @@ import { orderService } from '@/services/orderService'
 import type { Order, OrderProduct } from '@/types/order'
 import { OrderStatus, OrderItemStatus } from '@/types/order'
 import type { StatCard, FilterOption } from '@/types/statsFilter'
-import { f } from 'vue-router/dist/router-CWoNjPRp.mjs'
 
 // ===== STATE =====
 const orders = ref<Order[]>([])
