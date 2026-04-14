@@ -7,10 +7,12 @@ import { useRouter } from 'vue-router'
 import OrderCard from '@/components/OrderCard.vue'
 import MenuModal from '@/components/MenuModal.vue'
 import ConfirmationModal from '@/components/Confirmationmodal.vue'
+import StatsFiltersPanel from '@/components/StatsFilterPanel.vue'
 import type { Order, OrderItemStatus } from '@/types/order'
 import { OrderStatus } from '@/types/order'
 import type { Table } from '@/types/table'
 import OrderDetailModal from '@/components/OrderDetailModal.vue'
+import type { StatCard, FilterOption } from '@/types/statsFilter'
 
 const orderStore = useOrderStore()
 const tableStore = useTableStore()
@@ -38,6 +40,82 @@ onMounted(async () => {
   await Promise.all([orderStore.fetchOrders({ status: 'open' }), tableStore.fetchTables()])
 })
 
+// ─── Datos para StatsFiltersPanel ──────────────────────────────────────────
+
+// Configuración de las tarjetas de estadísticas (excluye pagadas - van a Cash Closure)
+const statsData = computed<StatCard[]>(() => {
+  const orders = orderStore.orders
+
+  return [
+    {
+      icon: '📋',
+      value: orders.filter((o) => o.status === OrderStatus.OPEN).length,
+      label: 'Abiertas',
+      colorKey: 'green',
+    },
+    {
+      icon: '⚙️',
+      value: orders.filter((o) => o.status === OrderStatus.IN_PROGRESS).length,
+      label: 'En Progreso',
+      colorKey: 'blue',
+    },
+    {
+      icon: '✅',
+      value: orders.filter((o) => o.status === OrderStatus.READY).length,
+      label: 'Listas',
+      colorKey: 'yellow',
+    },
+    {
+      icon: '🚚',
+      value: orders.filter((o) => o.status === OrderStatus.DELIVERED).length,
+      label: 'Entregadas',
+      colorKey: 'purple',
+    },
+    {
+      icon: '❌',
+      value: orders.filter((o) => o.status === OrderStatus.CANCELLED).length,
+      label: 'Canceladas',
+      colorKey: 'red',
+    },
+  ]
+})
+
+// Configuración de los filtros
+const filterOptions = computed<FilterOption[]>(() => [
+  {
+    value: 'all',
+    label: 'Todas',
+    colorKey: 'default',
+    dot: true,
+  },
+  {
+    value: 'open',
+    label: 'Abiertas',
+    colorKey: 'green',
+    dot: true,
+  },
+  {
+    value: 'in_progress',
+    label: 'En Progreso',
+    colorKey: 'blue',
+    dot: true,
+  },
+  {
+    value: 'delivered',
+    label: 'Entregadas',
+    colorKey: 'purple',
+    dot: true,
+  },
+  {
+    value: 'cancelled',
+    label: 'Canceladas',
+    colorKey: 'red',
+    dot: true,
+  },
+])
+
+// ─── Filtrado de órdenes ───────────────────────────────────────────────────
+
 const filteredOrders = computed(() => {
   let result = orderStore.orders
 
@@ -58,6 +136,8 @@ const filteredOrders = computed(() => {
 
   return result
 })
+
+// ─── Métodos existentes ────────────────────────────────────────────────────
 
 const openTableOrderModal = (table: Table) => {
   selectedTable.value = table
@@ -205,151 +285,57 @@ const handleUpdateItemStatus = async (itemId: string, status: OrderItemStatus) =
         </div>
       </Transition>
 
-      <!-- Stats Grid — excludes paid (those are in Cash Closure) -->
-      <div class="stats-grid">
-        <div class="stat-card open">
-          <div class="stat-icon">📋</div>
-          <div class="stat-content">
-            <div class="stat-value">
-              {{ orderStore.orders.filter((o) => o.status === OrderStatus.OPEN).length }}
+      <!-- StatsFiltersPanel Component - Reemplaza stats-grid -->
+      <StatsFiltersPanel
+        :stats="statsData"
+        :filters="filterOptions"
+        v-model="filterStatus"
+        v-model:searchQuery="searchQuery"
+        search-placeholder="Buscar por número de orden o mesa..."
+        :show-search="true"
+        :show-filters="true"
+      >
+        <!-- SLOT BETWEEN -->
+        <template #between>
+          <div class="available-tables-section inside-panel">
+            <div class="section-header">
+              <h2>Mesas Disponibles</h2>
+              <span class="section-badge"> {{ tableStore.availableTables.length }} mesas </span>
             </div>
-            <div class="stat-label">Abiertas</div>
-          </div>
-        </div>
-        <div class="stat-card in-progress">
-          <div class="stat-icon">⚙️</div>
-          <div class="stat-content">
-            <div class="stat-value">
-              {{ orderStore.orders.filter((o) => o.status === OrderStatus.IN_PROGRESS).length }}
-            </div>
-            <div class="stat-label">En Progreso</div>
-          </div>
-        </div>
-        <div class="stat-card ready">
-          <div class="stat-icon">✅</div>
-          <div class="stat-content">
-            <div class="stat-value">
-              {{ orderStore.orders.filter((o) => o.status === OrderStatus.READY).length }}
-            </div>
-            <div class="stat-label">Listas</div>
-          </div>
-        </div>
-        <div class="stat-card delivered">
-          <div class="stat-icon">🚚</div>
-          <div class="stat-content">
-            <div class="stat-value">
-              {{ orderStore.orders.filter((o) => o.status === OrderStatus.DELIVERED).length }}
-            </div>
-            <div class="stat-label">Entregadas</div>
-          </div>
-        </div>
-        <div class="stat-card cancelled">
-          <div class="stat-icon">❌</div>
-          <div class="stat-content">
-            <div class="stat-value">
-              {{ orderStore.orders.filter((o) => o.status === OrderStatus.CANCELLED).length }}
-            </div>
-            <div class="stat-label">Canceladas</div>
-          </div>
-        </div>
-      </div>
-    </div>
 
-    <!-- Mesas Disponibles Section -->
-    <div class="available-tables-section">
-      <div class="section-header">
-        <h2>Mesas Disponibles</h2>
-        <span class="section-badge">{{ tableStore.availableTables.length }} mesas</span>
-      </div>
+            <div v-if="tableStore.availableTables.length === 0" class="empty-state small">
+              <span class="empty-icon">🪑</span>
+              <p>No hay mesas disponibles en este momento</p>
+            </div>
 
-      <div v-if="tableStore.availableTables.length === 0" class="empty-state small">
-        <span class="empty-icon">🪑</span>
-        <p>No hay mesas disponibles en este momento</p>
-      </div>
-
-      <div v-else class="tables-grid">
-        <div
-          v-for="table in tableStore.availableTables"
-          :key="table.id"
-          class="table-quick-card"
-          @click="openTableOrderModal(table)"
-        >
-          <div class="table-number">
-            <span class="table-icon">🍽️</span>
-            <h3>Mesa {{ table.tableNumber }}</h3>
+            <div v-else class="tables-grid">
+              <div
+                v-for="table in tableStore.availableTables"
+                :key="table.id"
+                class="table-quick-card"
+                @click="openTableOrderModal(table)"
+              >
+                <div class="table-number">
+                  <span class="table-icon">🍽️</span>
+                  <h3>Mesa {{ table.tableNumber }}</h3>
+                </div>
+                <p class="table-capacity">
+                  🪑 {{ table.capacity }} {{ table.capacity === 1 ? 'persona' : 'personas' }}
+                </p>
+                <div class="quick-action">
+                  <span class="action-icon">➕</span>
+                  <span class="action-text">Tomar Orden</span>
+                </div>
+              </div>
+            </div>
           </div>
-          <p class="table-capacity">
-            🪑 {{ table.capacity }} {{ table.capacity === 1 ? 'persona' : 'personas' }}
-          </p>
-          <div class="quick-action">
-            <span class="action-icon">➕</span>
-            <span class="action-text">Tomar Orden</span>
-          </div>
-        </div>
-      </div>
+        </template>
+      </StatsFiltersPanel>
     </div>
 
     <!-- Divisor decorativo -->
     <div class="divider">
       <span class="divider-text">Órdenes Activas</span>
-    </div>
-
-    <!-- Filtros -->
-    <div class="filters-section">
-      <div class="search-box">
-        <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-          />
-        </svg>
-        <input
-          v-model="searchQuery"
-          type="text"
-          placeholder="Buscar por número de orden o mesa..."
-          class="search-input"
-        />
-      </div>
-
-      <div class="filter-buttons">
-        <button
-          @click="handleFilterChange('all')"
-          :class="['filter-btn', { active: filterStatus === 'all' }]"
-        >
-          <span class="filter-dot all"></span>
-          Todas
-        </button>
-        <button
-          @click="handleFilterChange('open')"
-          :class="['filter-btn', 'open', { active: filterStatus === 'open' }]"
-        >
-          <span class="filter-dot open"></span>
-          Abiertas
-        </button>
-        <button
-          @click="handleFilterChange('in_progress')"
-          :class="['filter-btn', 'in-progress', { active: filterStatus === 'in_progress' }]"
-        >
-          <span class="filter-dot in-progress"></span>
-          En Progreso
-        </button>
-        <button
-          @click="handleFilterChange('delivered')"
-          :class="['filter-btn', 'delivered', { active: filterStatus === 'delivered' }]"
-        >
-          <span class="filter-dot delivered"></span>
-          Entregadas
-        </button>
-        <button
-          @click="handleFilterChange('cancelled')"
-          :class="['filter-btn', 'cancelled', { active: filterStatus === 'cancelled' }]"
-        >
-          <span class="filter-dot cancelled"></span>
-          Canceladas
-        </button>
-      </div>
     </div>
 
     <!-- Estados de carga y error -->
@@ -496,109 +482,8 @@ const handleUpdateItemStatus = async (itemId: string, status: OrderItemStatus) =
   box-shadow: 0 8px 20px rgba(245, 158, 11, 0.4);
 }
 
-.btn-add.cash-closure-link {
-  background: linear-gradient(145deg, #10b981, #059669);
-  color: white;
-  box-shadow: 0 5px 15px rgba(16, 185, 129, 0.3);
-}
-
-.btn-add.cash-closure-link:hover {
-  background: linear-gradient(145deg, #059669, #047857);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
-}
-
 .btn-icon {
   font-size: 1.2rem;
-}
-
-/* Stats Grid */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 1rem;
-}
-
-.stat-card {
-  background: white;
-  padding: 1.25rem;
-  border-radius: 16px;
-  box-shadow: 0 5px 15px rgba(5, 27, 58, 0.05);
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  transition: transform 0.3s ease;
-  border: 1px solid rgba(96, 154, 187, 0.1);
-}
-
-.stat-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 20px rgba(5, 27, 58, 0.1);
-}
-
-.stat-card.clickable {
-  cursor: pointer;
-}
-
-.stat-card.open {
-  border-left: 4px solid #10b981;
-}
-.stat-card.in-progress {
-  border-left: 4px solid #609abb;
-}
-.stat-card.ready {
-  border-left: 4px solid #f59e0b;
-}
-.stat-card.delivered {
-  border-left: 4px solid #8b5cf6;
-}
-.stat-card.paid {
-  border-left: 4px solid #10b981;
-  background: linear-gradient(135deg, #f0fdf4, white);
-}
-.stat-card.cancelled {
-  border-left: 4px solid #ef4444;
-}
-
-.stat-icon {
-  font-size: 2rem;
-  background: #e4f4fc;
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.stat-content {
-  flex: 1;
-}
-
-.stat-value {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: #051b3a;
-  line-height: 1.2;
-}
-
-.stat-label {
-  font-size: 0.85rem;
-  color: #5d7a90;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.paid-label {
-  font-size: 0.75rem;
-  margin-bottom: 0.1rem;
-}
-
-.paid-link {
-  font-size: 0.95rem;
-  color: #10b981;
-  font-weight: 700;
 }
 
 /* Available Tables Section */
@@ -735,130 +620,6 @@ const handleUpdateItemStatus = async (itemId: string, status: OrderItemStatus) =
   border-radius: 30px;
   position: relative;
   border: 2px solid white;
-}
-
-/* Filters Section */
-.filters-section {
-  background: white;
-  border-radius: 16px;
-  padding: 1.25rem;
-  margin-bottom: 2rem;
-  display: flex;
-  gap: 1.5rem;
-  flex-wrap: wrap;
-  align-items: center;
-  box-shadow: 0 5px 15px rgba(5, 27, 58, 0.05);
-}
-
-.search-box {
-  position: relative;
-  flex: 1;
-  min-width: 250px;
-}
-
-.search-icon {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 18px;
-  height: 18px;
-  color: #b4cbd8;
-}
-
-.search-input {
-  width: 100%;
-  padding: 0.875rem 1rem 0.875rem 3rem;
-  border: 2px solid #e4f4fc;
-  border-radius: 12px;
-  font-size: 0.95rem;
-  transition: all 0.3s ease;
-  background: #e4f4fc;
-  color: #051b3a;
-}
-
-.search-input:focus {
-  outline: none;
-  border-color: #609abb;
-  background: white;
-  box-shadow: 0 0 0 4px rgba(96, 154, 187, 0.1);
-}
-
-.filter-buttons {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.filter-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1.25rem;
-  border: 2px solid #e4f4fc;
-  background: white;
-  border-radius: 30px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  color: #5d7a90;
-}
-
-.filter-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  display: inline-block;
-}
-
-.filter-dot.all {
-  background: #609abb;
-}
-.filter-dot.open {
-  background: #10b981;
-}
-.filter-dot.in-progress {
-  background: #609abb;
-}
-.filter-dot.delivered {
-  background: #8b5cf6;
-}
-.filter-dot.cancelled {
-  background: #ef4444;
-}
-
-.filter-btn:hover {
-  border-color: #609abb;
-  background: #e4f4fc;
-  color: #051b3a;
-}
-
-.filter-btn.active {
-  background: #609abb;
-  color: white;
-  border-color: #609abb;
-}
-
-.filter-btn.active .filter-dot {
-  background: white;
-}
-
-.filter-btn.open.active {
-  background: #10b981;
-  border-color: #10b981;
-}
-.filter-btn.in-progress.active {
-  background: #609abb;
-  border-color: #609abb;
-}
-.filter-btn.delivered.active {
-  background: #8b5cf6;
-  border-color: #8b5cf6;
-}
-.filter-btn.cancelled.active {
-  background: #ef4444;
-  border-color: #ef4444;
 }
 
 /* Orders Grid */
@@ -1037,25 +798,6 @@ const handleUpdateItemStatus = async (itemId: string, status: OrderItemStatus) =
     justify-content: center;
   }
 
-  .stats-grid {
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  }
-
-  .filters-section {
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .filter-buttons {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .filter-btn {
-    flex: 1;
-    justify-content: center;
-  }
-
   .orders-grid {
     grid-template-columns: 1fr;
   }
@@ -1072,19 +814,16 @@ const handleUpdateItemStatus = async (itemId: string, status: OrderItemStatus) =
 }
 
 @media (max-width: 480px) {
-  .stat-card {
+  .available-tables-section {
     padding: 1rem;
   }
-  .stat-icon {
-    width: 40px;
-    height: 40px;
-    font-size: 1.5rem;
+
+  .table-quick-card {
+    padding: 1rem;
   }
-  .stat-value {
-    font-size: 1.4rem;
-  }
-  .stat-label {
-    font-size: 0.75rem;
+
+  .table-quick-card h3 {
+    font-size: 1rem;
   }
 }
 </style>

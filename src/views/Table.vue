@@ -6,9 +6,11 @@ import { useOrderStore } from '@/stores/orderStore'
 import TableCard from '@/components/TableCard.vue'
 import TableModal from '@/components/TableModal.vue'
 import MenuModal from '@/components/MenuModal.vue'
+import StatsFiltersPanel from '@/components/StatsFilterPanel.vue'
 import type { Table, CreateTableDTO } from '@/types/table'
 import { TableStatus } from '@/types/table'
 import ConfirmationModal from '@/components/Confirmationmodal.vue'
+import type { StatCard, FilterOption } from '@/types/statsFilter'
 
 const tableStore = useTableStore()
 const orderStore = useOrderStore()
@@ -29,6 +31,72 @@ onMounted(async () => {
   await tableStore.fetchTables()
 })
 
+// ─── Datos para StatsFiltersPanel ──────────────────────────────────────────
+
+// Configuración de las tarjetas de estadísticas
+const statsData = computed<StatCard[]>(() => [
+  {
+    icon: '📊',
+    value: tableStore.tables.length,
+    label: 'Total Mesas',
+    colorKey: 'default',
+  },
+  {
+    icon: '✅',
+    value: tableStore.availableTables.length,
+    label: 'Disponibles',
+    colorKey: 'green',
+  },
+  {
+    icon: '👥',
+    value: tableStore.occupiedTables.length,
+    label: 'Ocupadas',
+    colorKey: 'red',
+  },
+  {
+    icon: '📅',
+    value: tableStore.reservedTables.length,
+    label: 'Reservadas',
+    colorKey: 'yellow',
+  },
+  {
+    icon: '🪑',
+    value: tableStore.totalCapacity,
+    label: 'Capacidad Total',
+    colorKey: 'purple',
+  },
+])
+
+// Configuración de los filtros
+const filterOptions = computed<FilterOption[]>(() => [
+  {
+    value: 'all',
+    label: 'Todas',
+    colorKey: 'default',
+    dot: true,
+  },
+  {
+    value: TableStatus.AVAILABLE,
+    label: 'Disponibles',
+    colorKey: 'green',
+    dot: true,
+  },
+  {
+    value: TableStatus.OCCUPIED,
+    label: 'Ocupadas',
+    colorKey: 'red',
+    dot: true,
+  },
+  {
+    value: TableStatus.RESERVED,
+    label: 'Reservadas',
+    colorKey: 'yellow',
+    dot: true,
+  },
+])
+
+// ─── Filtrado de mesas ─────────────────────────────────────────────────────
+
 const filteredTables = computed(() => {
   let result = tableStore.tables
 
@@ -44,6 +112,8 @@ const filteredTables = computed(() => {
 
   return result
 })
+
+// ─── Métodos existentes (sin cambios) ──────────────────────────────────────
 
 const openCreateModal = () => {
   isEdit.value = false
@@ -200,95 +270,16 @@ const handleStatusChange = async (id: string, status: TableStatus) => {
         </div>
       </Transition>
 
-      <!-- Tarjetas de estadísticas -->
-      <div class="stats-grid">
-        <div class="stat-card total">
-          <div class="stat-icon">📊</div>
-          <div class="stat-content">
-            <div class="stat-value">{{ tableStore.tables.length }}</div>
-            <div class="stat-label">Total Mesas</div>
-          </div>
-        </div>
-        <div class="stat-card available">
-          <div class="stat-icon">✅</div>
-          <div class="stat-content">
-            <div class="stat-value">{{ tableStore.availableTables.length }}</div>
-            <div class="stat-label">Disponibles</div>
-          </div>
-        </div>
-        <div class="stat-card occupied">
-          <div class="stat-icon">👥</div>
-          <div class="stat-content">
-            <div class="stat-value">{{ tableStore.occupiedTables.length }}</div>
-            <div class="stat-label">Ocupadas</div>
-          </div>
-        </div>
-        <div class="stat-card reserved">
-          <div class="stat-icon">📅</div>
-          <div class="stat-content">
-            <div class="stat-value">{{ tableStore.reservedTables.length }}</div>
-            <div class="stat-label">Reservadas</div>
-          </div>
-        </div>
-        <div class="stat-card capacity">
-          <div class="stat-icon">🪑</div>
-          <div class="stat-content">
-            <div class="stat-value">{{ tableStore.totalCapacity }}</div>
-            <div class="stat-label">Capacidad Total</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Filtros y búsqueda -->
-    <div class="filters-section">
-      <div class="search-box">
-        <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-          />
-        </svg>
-        <input
-          v-model="searchQuery"
-          type="text"
-          placeholder="Buscar por número de mesa..."
-          class="search-input"
-        />
-      </div>
-
-      <div class="filter-buttons">
-        <button
-          @click="filterStatus = 'all'"
-          :class="['filter-btn', { active: filterStatus === 'all' }]"
-        >
-          <span class="filter-dot all"></span>
-          Todas
-        </button>
-        <button
-          @click="filterStatus = TableStatus.AVAILABLE"
-          :class="['filter-btn', 'available', { active: filterStatus === TableStatus.AVAILABLE }]"
-        >
-          <span class="filter-dot available"></span>
-          Disponibles
-        </button>
-        <button
-          @click="filterStatus = TableStatus.OCCUPIED"
-          :class="['filter-btn', 'occupied', { active: filterStatus === TableStatus.OCCUPIED }]"
-        >
-          <span class="filter-dot occupied"></span>
-          Ocupadas
-        </button>
-        <button
-          @click="filterStatus = TableStatus.RESERVED"
-          :class="['filter-btn', 'reserved', { active: filterStatus === TableStatus.RESERVED }]"
-        >
-          <span class="filter-dot reserved"></span>
-          Reservadas
-        </button>
-      </div>
+      <!-- StatsFiltersPanel Component - Reemplaza stats-grid y filters-section -->
+      <StatsFiltersPanel
+        :stats="statsData"
+        :filters="filterOptions"
+        v-model="filterStatus"
+        v-model:searchQuery="searchQuery"
+        search-placeholder="Buscar por número de mesa..."
+        :show-search="true"
+        :show-filters="true"
+      />
     </div>
 
     <!-- Estados de carga y error -->
@@ -425,202 +416,6 @@ const handleStatusChange = async (id: string, status: TableStatus) => {
 .icon {
   width: 20px;
   height: 20px;
-}
-
-/* Stats Grid */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-
-.stat-card {
-  background: white;
-  padding: 1.25rem;
-  border-radius: 16px;
-  box-shadow: 0 5px 15px rgba(5, 27, 58, 0.05);
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  transition:
-    transform 0.3s ease,
-    box-shadow 0.3s ease;
-  border: 1px solid rgba(96, 154, 187, 0.1);
-}
-
-.stat-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 20px rgba(5, 27, 58, 0.1);
-}
-
-.stat-card.total {
-  border-left: 4px solid #609abb;
-}
-.stat-card.available {
-  border-left: 4px solid #10b981;
-}
-.stat-card.occupied {
-  border-left: 4px solid #ef4444;
-}
-.stat-card.reserved {
-  border-left: 4px solid #f59e0b;
-}
-.stat-card.capacity {
-  border-left: 4px solid #8b5cf6;
-}
-
-.stat-icon {
-  font-size: 2rem;
-  background: #e4f4fc;
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.stat-content {
-  flex: 1;
-}
-
-.stat-value {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: #051b3a;
-  line-height: 1.2;
-}
-
-.stat-label {
-  font-size: 0.85rem;
-  color: #5d7a90;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-/* Filters Section */
-.filters-section {
-  background: white;
-  border-radius: 16px;
-  padding: 1.5rem;
-  margin-bottom: 2rem;
-  display: flex;
-  gap: 1.5rem;
-  flex-wrap: wrap;
-  align-items: center;
-  box-shadow: 0 5px 15px rgba(5, 27, 58, 0.05);
-}
-
-.search-box {
-  position: relative;
-  flex: 1;
-  min-width: 250px;
-}
-
-.search-icon {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 18px;
-  height: 18px;
-  color: #b4cbd8;
-}
-
-.search-input {
-  width: 100%;
-  padding: 0.875rem 1rem 0.875rem 3rem;
-  border: 2px solid #e4f4fc;
-  border-radius: 12px;
-  font-size: 0.95rem;
-  transition: all 0.3s ease;
-  background: #e4f4fc;
-  color: #051b3a;
-}
-
-.search-input::placeholder {
-  color: #b4cbd8;
-}
-
-.search-input:focus {
-  outline: none;
-  border-color: #609abb;
-  background: white;
-  box-shadow: 0 0 0 4px rgba(96, 154, 187, 0.1);
-}
-
-.filter-buttons {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.filter-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1.25rem;
-  border: 2px solid #e4f4fc;
-  background: white;
-  border-radius: 30px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  color: #5d7a90;
-}
-
-.filter-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  display: inline-block;
-}
-
-.filter-dot.all {
-  background: #609abb;
-}
-.filter-dot.available {
-  background: #10b981;
-}
-.filter-dot.occupied {
-  background: #ef4444;
-}
-.filter-dot.reserved {
-  background: #f59e0b;
-}
-
-.filter-btn:hover {
-  border-color: #609abb;
-  background: #e4f4fc;
-  color: #051b3a;
-}
-
-.filter-btn.active {
-  background: #609abb;
-  color: white;
-  border-color: #609abb;
-}
-
-.filter-btn.active .filter-dot {
-  background: white;
-}
-
-.filter-btn.available.active {
-  background: #10b981;
-  border-color: #10b981;
-}
-
-.filter-btn.occupied.active {
-  background: #ef4444;
-  border-color: #ef4444;
-}
-
-.filter-btn.reserved.active {
-  background: #f59e0b;
-  border-color: #f59e0b;
 }
 
 /* Tables Grid */
@@ -795,22 +590,6 @@ const handleStatusChange = async (id: string, status: TableStatus) => {
     justify-content: center;
   }
 
-  .filters-section {
-    flex-direction: column;
-    gap: 1rem;
-    padding: 1rem;
-  }
-
-  .filter-buttons {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .filter-btn {
-    flex: 1;
-    justify-content: center;
-  }
-
   .tables-grid {
     grid-template-columns: 1fr;
   }
@@ -823,13 +602,8 @@ const handleStatusChange = async (id: string, status: TableStatus) => {
 }
 
 @media (max-width: 480px) {
-  .stats-grid {
+  .tables-grid {
     grid-template-columns: 1fr;
-  }
-
-  .filter-btn {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.85rem;
   }
 }
 </style>

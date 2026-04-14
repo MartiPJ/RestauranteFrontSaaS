@@ -27,139 +27,73 @@
         </button>
       </div>
 
-      <!-- Stats Cards -->
-      <div class="stats-grid">
-        <div class="stat-card total">
-          <div class="stat-icon">📦</div>
-          <div class="stat-content">
-            <div class="stat-value">{{ store.totalItems }}</div>
-            <div class="stat-label">Total Productos</div>
-          </div>
-        </div>
-        <div class="stat-card categories">
-          <div class="stat-icon">📋</div>
-          <div class="stat-content">
-            <div class="stat-value">{{ store.categories.length }}</div>
-            <div class="stat-label">Categorías</div>
-          </div>
-        </div>
-      </div>
+      <!-- StatsFiltersPanel Component -->
+      <StatsFiltersPanel
+        :stats="statsData"
+        :filters="filterOptions"
+        v-model="filterStatus"
+        v-model:searchQuery="searchQuery"
+        search-placeholder="Buscar por nombre..."
+        :show-search="true"
+        :show-filters="true"
+      >
+        <!-- SLOT EXTRA -->
+        <template #extra>
+          <div class="sfp-filters-bar">
+            <!-- Categoría -->
+            <div class="sfp-filter-group">
+              <span class="sfp-filter-label">Categoría:</span>
+              <div class="sfp-category-select-wrapper">
+                <select
+                  :value="categoryFilter"
+                  @change="handleCategoryChange"
+                  class="sfp-category-select"
+                >
+                  <option value="">Todas las categorías</option>
+                  <option v-for="cat in store.categories" :key="cat.id" :value="cat.id">
+                    {{ cat.name }}
+                  </option>
+                </select>
+                <svg class="sfp-select-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </div>
+            </div>
 
-      <!-- Buscador y Filtros -->
-      <div class="filters-section">
-        <!-- Búsqueda -->
-        <div class="search-box">
-          <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
-          <input
-            type="text"
-            :value="store.searchQuery"
-            @input="handleSearch"
-            placeholder="Buscar por nombre..."
-            class="search-input"
-          />
-          <button
-            v-if="store.searchQuery"
-            @click="store.clearSearch()"
-            class="clear-search"
-            title="Limpiar búsqueda"
-          >
-            ✕
-          </button>
-        </div>
+            <!-- Items por página -->
+            <div class="sfp-filter-group">
+              <span class="sfp-filter-label">Mostrar:</span>
+              <div class="sfp-per-page-wrapper">
+                <select
+                  :value="store.itemsPerPage"
+                  @change="handleItemsPerPageChange"
+                  class="sfp-per-page-select"
+                >
+                  <option v-for="option in itemsPerPageOptions" :key="option" :value="option">
+                    {{ option }}
+                  </option>
+                </select>
+              </div>
+            </div>
 
-        <!-- Filtro disponibilidad -->
-        <div class="filter-group">
-          <span class="filter-label">Disponibilidad:</span>
-          <div class="filter-chips">
-            <button
-              class="chip"
-              :class="{ active: store.availabilityFilter === null }"
-              @click="store.setAvailabilityFilter(null)"
-            >
-              Todos
-            </button>
-            <button
-              class="chip available"
-              :class="{ active: store.availabilityFilter === true }"
-              @click="store.setAvailabilityFilter(true)"
-            >
-              <span class="chip-dot"></span>
-              Disponibles
-            </button>
-            <button
-              class="chip unavailable"
-              :class="{ active: store.availabilityFilter === false }"
-              @click="store.setAvailabilityFilter(false)"
-            >
-              <span class="chip-dot"></span>
-              No disponibles
+            <!-- Limpiar filtros -->
+            <button v-if="hasActiveFilters" class="sfp-clear-filters-btn" @click="clearAllFilters">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+              Limpiar filtros
             </button>
           </div>
-        </div>
-
-        <!-- Filtro categoría - MEJORADO -->
-        <div class="filter-group category-filter-group">
-          <span class="filter-label">Categoría:</span>
-          <div class="category-select-wrapper">
-            <select
-              :value="store.categoryFilter ?? ''"
-              @change="handleCategoryChange"
-              class="category-select"
-            >
-              <option value="">Todas las categorías</option>
-              <option v-for="cat in store.categories" :key="cat.id" :value="cat.id">
-                {{ cat.name }}
-              </option>
-            </select>
-            <svg class="select-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </div>
-        </div>
-
-        <!-- Items por página -->
-        <div class="per-page-selector">
-          <span class="filter-label">Mostrar:</span>
-          <div class="per-page-wrapper">
-            <select
-              :value="store.itemsPerPage"
-              @change="handleItemsPerPageChange"
-              class="per-page-select"
-            >
-              <option v-for="option in itemsPerPageOptions" :key="option" :value="option">
-                {{ option }}
-              </option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Botón limpiar filtros - MOVIDO AQUÍ -->
-        <button
-          v-if="hasActiveFilters"
-          class="btn-clear-filters-main"
-          @click="store.clearFilters()"
-        >
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-          Limpiar filtros
-        </button>
-      </div>
+        </template>
+      </StatsFiltersPanel>
 
       <!-- Barra de resultados -->
       <div class="results-bar">
@@ -201,7 +135,7 @@
         <h3>No hay productos</h3>
         <p v-if="hasActiveFilters">No se encontraron productos con los filtros aplicados</p>
         <p v-else>Comienza agregando tu primer producto al menú</p>
-        <button v-if="hasActiveFilters" class="btn-clear-alt" @click="store.clearFilters()">
+        <button v-if="hasActiveFilters" class="btn-clear-alt" @click="clearAllFilters">
           Limpiar filtros
         </button>
         <button v-else class="btn btn-primary" @click="openCreateModal">
@@ -226,8 +160,6 @@
             fill="none"
             stroke="currentColor"
             stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
           >
             <polyline points="15 18 9 12 15 6"></polyline>
           </svg>
@@ -239,19 +171,16 @@
             v-for="page in visiblePages"
             :key="page"
             class="page-number"
-            :class="{
-              active: page === store.currentPage,
-              ellipsis: page === -1,
-            }"
+            :class="{ active: page === store.currentPage, ellipsis: page === -1 }"
             @click="page !== -1 && store.goToPage(page)"
           >
             {{ page === -1 ? '...' : page }}
           </button>
         </div>
 
-        <span class="pagination-info">
-          Página {{ store.currentPage }} de {{ store.totalPages }}
-        </span>
+        <span class="pagination-info"
+          >Página {{ store.currentPage }} de {{ store.totalPages }}</span
+        >
 
         <button
           class="pagination-btn"
@@ -268,8 +197,6 @@
             fill="none"
             stroke="currentColor"
             stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
           >
             <polyline points="9 18 15 12 9 6"></polyline>
           </svg>
@@ -302,12 +229,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useProductStore } from '@/stores/productStore'
 import ProductCard from '@/components/ProductCard.vue'
 import ProductForm from '@/components/ProductForm.vue'
 import ConfirmationModal from '@/components/Confirmationmodal.vue'
+import StatsFiltersPanel from '@/components/StatsFilterPanel.vue'
 import type { Product, ProductFormData } from '@/types/product'
+import type { StatCard, FilterOption } from '@/types/statsFilter'
 
 const store = useProductStore()
 
@@ -316,9 +245,73 @@ const selectedProduct = ref<Product | null>(null)
 const showDeleteConfirm = ref(false)
 const productToDelete = ref<string | null>(null)
 
+// Estados para los filtros
+const filterStatus = ref<string>('all')
+const searchQuery = ref('')
+const categoryFilter = ref<string>('')
+
 const itemsPerPageOptions = [5, 10, 20]
 
-// ── Computed ────────────────────────────────────────────
+let filterDebounceTimeout: ReturnType<typeof setTimeout> | null = null
+
+function debouncedFetchFilters() {
+  if (filterDebounceTimeout) clearTimeout(filterDebounceTimeout)
+  filterDebounceTimeout = setTimeout(() => {
+    fetchProductsWithFilters()
+  }, 300)
+}
+
+// Datos para StatsFiltersPanel
+const statsData = computed<StatCard[]>(() => [
+  {
+    icon: '📦',
+    value: store.totalItems,
+    label: 'Total Productos',
+    colorKey: 'default',
+  },
+  {
+    icon: '📋',
+    value: store.categories.length,
+    label: 'Categorías',
+    colorKey: 'green',
+  },
+  {
+    icon: '✅',
+    value: store.products.filter((p) => p.isAvailable).length,
+    label: 'Disponibles',
+    colorKey: 'green',
+  },
+  {
+    icon: '⏸️',
+    value: store.products.filter((p) => !p.isAvailable).length,
+    label: 'No Disponibles',
+    colorKey: 'red',
+  },
+])
+
+// Configuración de los filtros principales (solo disponibilidad)
+const filterOptions = computed<FilterOption[]>(() => [
+  {
+    value: 'all',
+    label: 'Todos',
+    colorKey: 'default',
+    dot: true,
+  },
+  {
+    value: 'available',
+    label: 'Disponibles',
+    colorKey: 'green',
+    dot: true,
+  },
+  {
+    value: 'unavailable',
+    label: 'No Disponibles',
+    colorKey: 'red',
+    dot: true,
+  },
+])
+
+// Computed
 const startItem = computed(() =>
   store.products.length > 0 ? (store.currentPage - 1) * store.itemsPerPage + 1 : 0,
 )
@@ -326,7 +319,7 @@ const startItem = computed(() =>
 const endItem = computed(() => Math.min(store.currentPage * store.itemsPerPage, store.totalItems))
 
 const hasActiveFilters = computed(
-  () => !!store.searchQuery || store.availabilityFilter !== null || !!store.categoryFilter,
+  () => !!searchQuery.value || !!categoryFilter.value || filterStatus.value !== 'all',
 )
 
 const visiblePages = computed(() => {
@@ -355,29 +348,50 @@ const visiblePages = computed(() => {
   return pages
 })
 
-// ── Handlers ────────────────────────────────────────────
+// Handlers
 async function loadData() {
   try {
     await store.fetchCategories()
-    await store.fetchProducts()
+    await fetchProductsWithFilters()
   } catch (error) {
     console.error('Error loading data:', error)
   }
 }
 
-function handleSearch(event: Event) {
-  const target = event.target as HTMLInputElement
-  store.setSearchQuery(target.value)
+async function fetchProductsWithFilters() {
+  let availability: boolean | null = null
+  if (filterStatus.value === 'available') {
+    availability = true
+  } else if (filterStatus.value === 'unavailable') {
+    availability = false
+  }
+
+  store.setSearchQuery(searchQuery.value)
+  store.setAvailabilityFilter(availability)
+  store.setCategoryFilter(categoryFilter.value || null)
+
+  await store.fetchProducts()
 }
+
+// Watchers
+watch([filterStatus, searchQuery, categoryFilter], () => {
+  debouncedFetchFilters()
+})
 
 function handleCategoryChange(event: Event) {
   const target = event.target as HTMLSelectElement
-  store.setCategoryFilter(target.value || null)
+  categoryFilter.value = target.value
 }
 
 function handleItemsPerPageChange(event: Event) {
   const target = event.target as HTMLSelectElement
   store.setItemsPerPage(Number(target.value))
+}
+
+function clearAllFilters() {
+  searchQuery.value = ''
+  filterStatus.value = 'all'
+  categoryFilter.value = ''
 }
 
 function openCreateModal() {
@@ -413,6 +427,7 @@ async function handleSubmit(data: ProductFormData) {
       await store.createProduct(data)
     }
     closeModal()
+    await fetchProductsWithFilters()
   } catch (error) {
     console.error('Error submitting form:', error)
   }
@@ -423,6 +438,7 @@ async function handleDelete() {
     try {
       await store.deleteProduct(productToDelete.value)
       cancelDelete()
+      await fetchProductsWithFilters()
     } catch (error) {
       console.error('Error deleting product:', error)
     }
@@ -471,141 +487,24 @@ onMounted(() => {
   font-size: 1rem;
 }
 
-/* Stats */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-
-.stat-card {
-  background: white;
-  padding: 1.25rem;
-  border-radius: 16px;
-  box-shadow: 0 5px 15px rgba(5, 27, 58, 0.05);
+/* Estilos para los filtros dentro del slot */
+.sfp-filters-bar {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  transition: transform 0.3s ease;
-  border: 1px solid rgba(96, 154, 187, 0.1);
-}
-
-.stat-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 20px rgba(5, 27, 58, 0.1);
-}
-.stat-card.total {
-  border-left: 4px solid #609abb;
-}
-.stat-card.categories {
-  border-left: 4px solid #10b981;
-}
-
-.stat-icon {
-  font-size: 2rem;
-  background: #e4f4fc;
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.stat-value {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: #051b3a;
-  line-height: 1.2;
-}
-.stat-label {
-  font-size: 0.85rem;
-  color: #5d7a90;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-/* Filters Section */
-.filters-section {
-  background: white;
-  border-radius: 16px;
-  padding: 1.25rem 1.5rem;
-  margin-bottom: 1rem;
-  display: flex;
-  gap: 1.25rem;
+  gap: 16px;
   flex-wrap: wrap;
-  align-items: center;
-  box-shadow: 0 5px 15px rgba(5, 27, 58, 0.05);
+
+  margin-top: 12px;
 }
 
-/* Search */
-.search-box {
-  position: relative;
-  flex: 1;
-  min-width: 220px;
-}
-
-.search-icon {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 18px;
-  height: 18px;
-  color: #b4cbd8;
-}
-
-.search-input {
-  width: 100%;
-  padding: 0.75rem 2.5rem 0.75rem 3rem;
-  border: 2px solid #e4f4fc;
-  border-radius: 12px;
-  font-size: 0.95rem;
-  transition: all 0.3s ease;
-  background: #e4f4fc;
-  color: #051b3a;
-  box-sizing: border-box;
-}
-
-.search-input:focus {
-  outline: none;
-  border-color: #609abb;
-  background: white;
-  box-shadow: 0 0 0 4px rgba(96, 154, 187, 0.1);
-}
-
-.clear-search {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  color: #b4cbd8;
-  font-size: 1.1rem;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 50%;
-  transition: all 0.3s ease;
-}
-
-.clear-search:hover {
-  color: #609abb;
-  background: rgba(96, 154, 187, 0.1);
-}
-
-/* Filter groups */
-.filter-group {
+.sfp-filter-group {
   display: flex;
   align-items: center;
-  gap: 0.625rem;
-  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
-.filter-label {
-  font-size: 0.85rem;
+.sfp-filter-label {
+  font-size: 0.8rem;
   font-weight: 600;
   color: #5d7a90;
   white-space: nowrap;
@@ -613,141 +512,127 @@ onMounted(() => {
   letter-spacing: 0.4px;
 }
 
-/* Chips de disponibilidad */
-.filter-chips {
-  display: flex;
-  gap: 0.375rem;
+.sfp-category-select-wrapper {
+  position: relative;
+  min-width: 160px;
 }
 
-.chip {
+.sfp-category-select {
+  width: 100%;
+  padding: 0.55rem 2rem 0.55rem 0.875rem;
+  border: 1px solid #e4f4fc;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  background: #e4f4fc;
+  color: #051b3a;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  appearance: none;
+  font-weight: 500;
+}
+
+.sfp-category-select:hover {
+  border-color: #609abb;
+  background: white;
+}
+
+.sfp-category-select:focus {
+  outline: none;
+  border-color: #609abb;
+  background: white;
+}
+
+.sfp-select-arrow {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px;
+  height: 14px;
+  color: #609abb;
+  pointer-events: none;
+}
+
+.sfp-per-page-wrapper {
+  position: relative;
+}
+
+.sfp-per-page-select {
+  padding: 0.55rem 2rem 0.55rem 0.875rem;
+  border: 1px solid #e4f4fc;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  background: #e4f4fc;
+  color: #051b3a;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  appearance: none;
+  font-weight: 500;
+}
+
+.sfp-per-page-select:hover {
+  border-color: #609abb;
+  background: white;
+}
+
+.sfp-per-page-select:focus {
+  outline: none;
+  border-color: #609abb;
+  background: white;
+}
+
+.sfp-clear-filters-btn {
   display: flex;
   align-items: center;
-  gap: 0.375rem;
-  padding: 0.4rem 0.875rem;
-  border: 2px solid #e4f4fc;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  background: #fee2e2;
+  color: #ef4444;
+  border: 2px solid #fecaca;
   border-radius: 30px;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.25s ease;
-  background: #e4f4fc;
-  color: #5d7a90;
+  white-space: nowrap;
 }
 
-.chip:hover {
-  border-color: #609abb;
-  color: #609abb;
-  background: white;
-}
-
-.chip.active {
-  background: #609abb;
-  border-color: #609abb;
-  color: white;
-  box-shadow: 0 3px 10px rgba(96, 154, 187, 0.3);
-}
-
-.chip-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: 0.8;
-}
-
-.chip.available .chip-dot {
-  background: #10b981;
-}
-.chip.unavailable .chip-dot {
+.sfp-clear-filters-btn:hover {
   background: #ef4444;
-}
-.chip.available.active .chip-dot,
-.chip.unavailable.active .chip-dot {
-  background: white;
-}
-
-/* Category select */
-.category-select {
-  padding: 0.5rem 2rem 0.5rem 0.875rem;
-  border: 2px solid #e4f4fc;
-  border-radius: 10px;
-  font-size: 0.9rem;
-  background: #e4f4fc;
-  color: #051b3a;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  max-width: 200px;
-}
-
-.category-select:focus {
-  outline: none;
-  border-color: #609abb;
-  background: white;
-}
-
-/* Per page */
-.per-page-selector {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.per-page-select {
-  padding: 0.5rem 2rem 0.5rem 0.875rem;
-  border: 2px solid #e4f4fc;
-  border-radius: 10px;
-  font-size: 0.9rem;
-  background: #e4f4fc;
-  color: #051b3a;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.per-page-select:focus {
-  outline: none;
-  border-color: #609abb;
-  background: white;
+  color: white;
+  border-color: #ef4444;
 }
 
 /* Results bar */
 .results-bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1.5rem;
-  padding: 0 0.25rem;
-  flex-wrap: wrap;
-  gap: 0.75rem;
+  justify-content: flex-start;
+  margin: 1rem 0 1.5rem 0;
+  padding: 0.5rem 0.75rem;
+  background: rgba(96, 154, 187, 0.05);
+  border-radius: 12px;
 }
 
 .results-badge {
-  background: #e4f4fc;
+  background: white;
   color: #609abb;
   padding: 0.4rem 1rem;
   border-radius: 30px;
   font-weight: 600;
-  font-size: 0.9rem;
-}
-
-.btn-clear-filters {
-  padding: 0.4rem 1rem;
-  background: #fee2e2;
-  color: #ef4444;
-  border: 2px solid #fecaca;
-  border-radius: 30px;
   font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.25s ease;
+  border: 1px solid rgba(96, 154, 187, 0.2);
 }
 
-.btn-clear-filters:hover {
-  background: #ef4444;
-  color: white;
-  border-color: #ef4444;
+/* Products Grid */
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
 }
 
-/* Loading */
+/* Loading State */
 .loading-state {
   display: flex;
   flex-direction: column;
@@ -774,12 +659,13 @@ onMounted(() => {
     transform: rotate(360deg);
   }
 }
+
 .loading-state p {
   color: #5d7a90;
   margin: 0;
 }
 
-/* Error */
+/* Error Message */
 .error-message {
   display: flex;
   flex-direction: column;
@@ -795,18 +681,11 @@ onMounted(() => {
 .error-icon {
   font-size: 2rem;
 }
+
 .error-message p {
   color: #5d7a90;
   margin: 0;
   text-align: center;
-}
-
-/* Products Grid */
-.products-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
 }
 
 /* Empty State */
@@ -839,6 +718,7 @@ onMounted(() => {
   font-size: 1.3rem;
   color: #051b3a;
 }
+
 .empty-state p {
   margin: 0 0 1.5rem 0;
   color: #5d7a90;
@@ -982,261 +862,45 @@ onMounted(() => {
   .products-view {
     padding: 1rem 0;
   }
+
   .page-header {
     flex-direction: column;
     align-items: stretch;
   }
+
   .btn-primary {
     width: 100%;
     justify-content: center;
   }
-  .filters-section {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 1rem;
-  }
-  .search-box {
-    width: 100%;
-  }
-  .filter-group {
-    justify-content: space-between;
-  }
-  .filter-chips {
-    flex: 1;
-    justify-content: flex-end;
-  }
-  .per-page-selector {
-    justify-content: space-between;
-  }
-  .per-page-select {
-    flex: 1;
-  }
+
   .products-grid {
     grid-template-columns: 1fr;
   }
+
   .pagination-section {
     flex-direction: column;
     gap: 1rem;
   }
+
   .pagination-btn {
     width: 100%;
     justify-content: center;
   }
+
   .page-numbers {
     order: -1;
   }
 }
 
 @media (max-width: 480px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
   .page-numbers {
     flex-wrap: wrap;
     justify-content: center;
   }
+
   .page-number {
     min-width: 35px;
     height: 35px;
   }
-  .filter-chips {
-    flex-wrap: wrap;
-  }
-}
-
-/* Category Select Mejorado */
-.category-filter-group {
-  flex: 1;
-  min-width: 180px;
-}
-
-.category-select-wrapper {
-  position: relative;
-  flex: 1;
-}
-
-.category-select {
-  width: 100%;
-  padding: 0.625rem 2rem 0.625rem 1rem;
-  border: 2px solid #e4f4fc;
-  border-radius: 12px;
-  font-size: 0.9rem;
-  background: #e4f4fc;
-  color: #051b3a;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  appearance: none;
-  font-weight: 500;
-}
-
-.category-select:hover {
-  border-color: #609abb;
-  background: white;
-}
-
-.category-select:focus {
-  outline: none;
-  border-color: #609abb;
-  background: white;
-  box-shadow: 0 0 0 3px rgba(96, 154, 187, 0.1);
-}
-
-.select-arrow {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 16px;
-  height: 16px;
-  color: #609abb;
-  pointer-events: none;
-  transition: transform 0.3s ease;
-}
-
-.category-select:focus + .select-arrow {
-  transform: translateY(-50%) rotate(180deg);
-}
-
-/* Per page wrapper */
-.per-page-wrapper {
-  position: relative;
-}
-
-.per-page-select {
-  padding: 0.625rem 2rem 0.625rem 1rem;
-  border: 2px solid #e4f4fc;
-  border-radius: 12px;
-  font-size: 0.9rem;
-  background: #e4f4fc;
-  color: #051b3a;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  appearance: none;
-  font-weight: 500;
-}
-
-.per-page-select:hover {
-  border-color: #609abb;
-  background: white;
-}
-
-.per-page-select:focus {
-  outline: none;
-  border-color: #609abb;
-  background: white;
-}
-
-/* Botón limpiar filtros principal */
-.btn-clear-filters-main {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.625rem 1.25rem;
-  background: #fee2e2;
-  color: #ef4444;
-  border: 2px solid #fecaca;
-  border-radius: 12px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  white-space: nowrap;
-}
-
-.btn-clear-filters-main:hover {
-  background: #ef4444;
-  color: white;
-  border-color: #ef4444;
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(239, 68, 68, 0.3);
-}
-
-.btn-clear-filters-main svg {
-  transition: transform 0.3s ease;
-}
-
-.btn-clear-filters-main:hover svg {
-  transform: rotate(90deg);
-}
-
-/* Results bar mejorado */
-.results-bar {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  margin-bottom: 1.5rem;
-  padding: 0.5rem 0.75rem;
-  background: rgba(96, 154, 187, 0.05);
-  border-radius: 12px;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
-
-.results-badge {
-  background: white;
-  color: #609abb;
-  padding: 0.4rem 1rem;
-  border-radius: 30px;
-  font-weight: 600;
-  font-size: 0.85rem;
-  border: 1px solid rgba(96, 154, 187, 0.2);
-}
-
-/* Responsive updates */
-@media (max-width: 768px) {
-  .filters-section {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 1rem;
-  }
-
-  .filter-group {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .category-filter-group {
-    width: 100%;
-  }
-
-  .category-select-wrapper {
-    flex: 1;
-    max-width: none;
-  }
-
-  .btn-clear-filters-main {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .filter-chips {
-    flex: 1;
-    justify-content: flex-end;
-  }
-
-  .per-page-selector {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .per-page-wrapper {
-    min-width: 100px;
-  }
-}
-
-/* Animaciones */
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.filters-section {
-  animation: slideDown 0.3s ease;
 }
 </style>

@@ -30,22 +30,45 @@ export const useProductStore = defineStore('product', () => {
   }
 
   // Acciones
+  function matchesProductFilters(product: Product, trimmedSearch: string) {
+    if (availabilityFilter.value !== null && product.isAvailable !== availabilityFilter.value) {
+      return false
+    }
+
+    if (categoryFilter.value && product.category?.id !== categoryFilter.value) {
+      return false
+    }
+
+    if (trimmedSearch && !normalizeSearch(product.name).includes(trimmedSearch)) {
+      return false
+    }
+
+    return true
+  }
+
   async function fetchProducts() {
     loading.value = true
     error.value = null
     try {
       const trimmedSearch = normalizeSearch(searchQuery.value)
+      const hasFilters =
+        availabilityFilter.value !== null || !!categoryFilter.value || !!trimmedSearch
 
-      if (trimmedSearch) {
-        const response = await productService.getProducts(1, 1000, {
+      const response = await productService.getProducts(
+        hasFilters ? 1 : currentPage.value,
+        hasFilters ? 1000 : itemsPerPage.value,
+        {
+          search: trimmedSearch || undefined,
           isAvailable: availabilityFilter.value,
           categoryId: categoryFilter.value,
-        })
+        },
+      )
 
-        const filteredProducts = response.data.filter((product) =>
-          normalizeSearch(product.name).includes(trimmedSearch),
-        )
+      const filteredProducts = response.data.filter((product) =>
+        matchesProductFilters(product, trimmedSearch),
+      )
 
+      if (hasFilters) {
         totalItems.value = filteredProducts.length
         totalPages.value = Math.max(1, Math.ceil(filteredProducts.length / itemsPerPage.value))
 
@@ -58,11 +81,7 @@ export const useProductStore = defineStore('product', () => {
 
         products.value = filteredProducts.slice(startIndex, endIndex)
       } else {
-        const response = await productService.getProducts(currentPage.value, itemsPerPage.value, {
-          isAvailable: availabilityFilter.value,
-          categoryId: categoryFilter.value,
-        })
-        products.value = response.data
+        products.value = filteredProducts
         totalItems.value = response.meta.totalItems
         totalPages.value = response.meta.totalPages
         currentPage.value = response.meta.currentPage

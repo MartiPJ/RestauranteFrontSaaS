@@ -4,7 +4,9 @@ import { ref, onMounted, computed } from 'vue'
 import { useCategoryStore } from '@/stores/categoryStore'
 import CategoryModal from '@/components/CategoryModal.vue'
 import ConfirmationModal from '@/components/Confirmationmodal.vue'
+import StatsFiltersPanel from '@/components/StatsFilterPanel.vue'
 import type { Category } from '@/types/category'
+import type { StatCard, FilterOption } from '@/types/statsFilter'
 
 const categoryStore = useCategoryStore()
 
@@ -16,6 +18,8 @@ const categoryToDelete = ref<string | null>(null)
 const showToast = ref(false)
 const toastMessage = ref('')
 const toastType = ref<'success' | 'error'>('success')
+const filterStatus = ref<string>('all')
+const searchQuery = ref('')
 
 const itemsPerPageOptions = [5, 10, 20]
 
@@ -23,16 +27,75 @@ onMounted(() => {
   categoryStore.fetchCategories()
 })
 
-const hasResults = computed(() => categoryStore.categories.length > 0)
+// ─── Datos para StatsFiltersPanel ──────────────────────────────────────────
+
+// Configuración de las tarjetas de estadísticas
+const statsData = computed<StatCard[]>(() => [
+  {
+    icon: '📋',
+    value: categoryStore.meta?.totalItems ?? categoryStore.categories.length,
+    label: 'Total Categorías',
+    colorKey: 'default',
+  },
+  {
+    icon: '✅',
+    value: categoryStore.categories.filter((c) => c.isActive).length,
+    label: 'Activas',
+    colorKey: 'green',
+  },
+  {
+    icon: '⏸️',
+    value: categoryStore.categories.filter((c) => !c.isActive).length,
+    label: 'Inactivas',
+    colorKey: 'red',
+  },
+])
+
+// Configuración de los filtros (opcional - solo mostramos todos)
+const filterOptions = computed<FilterOption[]>(() => [
+  {
+    value: 'all',
+    label: 'Todas',
+    colorKey: 'default',
+    dot: true,
+  },
+])
+
+// ─── Filtrado de categorías ────────────────────────────────────────────────
+
+// Categorías filtradas por búsqueda y estado
+const filteredCategories = computed(() => {
+  let result = categoryStore.categories
+
+  // Filtro por búsqueda
+  if (searchQuery.value) {
+    result = result.filter((c) => c.name.toLowerCase().includes(searchQuery.value.toLowerCase()))
+  }
+
+  // Filtro por estado
+  if (filterStatus.value === 'active') {
+    result = result.filter((c) => c.isActive)
+  } else if (filterStatus.value === 'inactive') {
+    result = result.filter((c) => !c.isActive)
+  }
+
+  return result
+})
+
+// Para mantener compatibilidad con el código existente
+const hasResults = computed(() => filteredCategories.value.length > 0)
 
 const noResultsMessage = computed(() => {
-  if (categoryStore.searchQuery) {
-    return `No se encontraron categorías con "${categoryStore.searchQuery}"`
+  if (searchQuery.value) {
+    return `No se encontraron categorías con "${searchQuery.value}"`
+  }
+  if (filterStatus.value !== 'all') {
+    return `No hay categorías ${filterStatus.value === 'active' ? 'activas' : 'inactivas'}`
   }
   return 'No hay categorías disponibles'
 })
 
-// Paginación con números (igual que productos)
+// Paginación con números
 const visiblePages = computed(() => {
   if (!categoryStore.meta) return []
   const pages: number[] = []
@@ -124,12 +187,13 @@ async function handleToggleActive(category: Category) {
   }
 }
 
-function handleSearch(event: Event) {
-  const target = event.target as HTMLInputElement
-  categoryStore.setSearchQuery(target.value)
+function handleSearch(value: string) {
+  searchQuery.value = value
+  categoryStore.setSearchQuery(value)
 }
 
 function clearSearch() {
+  searchQuery.value = ''
   categoryStore.clearSearch()
 }
 
@@ -141,6 +205,22 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
     showToast.value = false
   }, 3000)
 }
+
+// Sincronizar la búsqueda del store con la local
+const syncSearchQuery = () => {
+  searchQuery.value = categoryStore.searchQuery
+}
+
+// Watch para mantener sincronizada la búsqueda
+import { watch } from 'vue'
+watch(
+  () => categoryStore.searchQuery,
+  (newVal) => {
+    if (searchQuery.value !== newVal) {
+      searchQuery.value = newVal
+    }
+  },
+)
 </script>
 
 <template>
@@ -166,66 +246,20 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
         </button>
       </div>
 
-      <!-- Stats Cards -->
-      <div class="stats-grid">
-        <div class="stat-card total">
-          <div class="stat-icon">📋</div>
-          <div class="stat-content">
-            <div class="stat-value">
-              {{ categoryStore.meta?.totalItems ?? categoryStore.categories.length }}
-            </div>
-            <div class="stat-label">Total Categorías</div>
-          </div>
-        </div>
-        <div class="stat-card active">
-          <div class="stat-icon">✅</div>
-          <div class="stat-content">
-            <div class="stat-value">
-              {{ categoryStore.categories.filter((c) => c.isActive).length }}
-            </div>
-            <div class="stat-label">Activas</div>
-          </div>
-        </div>
-        <div class="stat-card inactive">
-          <div class="stat-icon">⏸️</div>
-          <div class="stat-content">
-            <div class="stat-value">
-              {{ categoryStore.categories.filter((c) => !c.isActive).length }}
-            </div>
-            <div class="stat-label">Inactivas</div>
-          </div>
-        </div>
-      </div>
+      <!-- StatsFiltersPanel Component - Reemplaza stats-grid -->
+      <StatsFiltersPanel
+        :stats="statsData"
+        :filters="filterOptions"
+        v-model="filterStatus"
+        v-model:searchQuery="searchQuery"
+        search-placeholder="Buscar por nombre..."
+        :show-search="true"
+        :show-filters="false"
+      />
     </div>
 
-    <!-- Search and Filters -->
-    <div class="filters-section">
-      <div class="search-box">
-        <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-          />
-        </svg>
-        <input
-          type="text"
-          :value="categoryStore.searchQuery"
-          @input="handleSearch"
-          placeholder="Buscar por nombre..."
-          class="search-input"
-        />
-        <button
-          v-if="categoryStore.searchQuery"
-          @click="clearSearch"
-          class="clear-search"
-          title="Limpiar búsqueda"
-        >
-          ✕
-        </button>
-      </div>
-
+    <!-- Selector de items por página (fuera del panel de filtros) -->
+    <div class="per-page-wrapper">
       <div class="per-page-selector">
         <span class="per-page-label">Mostrar:</span>
         <select
@@ -259,15 +293,15 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
       <div class="empty-icon">📋</div>
       <h3>No hay categorías</h3>
       <p>{{ noResultsMessage }}</p>
-      <button v-if="categoryStore.searchQuery" @click="clearSearch" class="btn-clear">
-        Limpiar búsqueda
+      <button v-if="searchQuery || filterStatus !== 'all'" @click="clearSearch" class="btn-clear">
+        Limpiar filtros
       </button>
     </div>
 
     <!-- Categories List -->
     <div v-else class="categories-list">
       <div
-        v-for="category in categoryStore.sortedCategories"
+        v-for="category in filteredCategories"
         :key="category.id"
         class="category-card"
         :class="{ inactive: !category.isActive }"
@@ -301,7 +335,7 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
       </div>
     </div>
 
-    <!-- Pagination con números (igual que productos) -->
+    <!-- Pagination con números -->
     <div v-if="categoryStore.meta && categoryStore.meta.totalPages > 1" class="pagination-section">
       <button
         class="pagination-btn"
@@ -485,131 +519,15 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
   font-size: 1.1rem;
 }
 
-/* Stats */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 1rem;
+/* Per Page Selector */
+.per-page-wrapper {
+  background: white;
+  border-radius: 16px;
+  padding: 1rem 1.5rem;
   margin-bottom: 1.5rem;
-}
-
-.stat-card {
-  background: white;
-  padding: 1.25rem;
-  border-radius: 16px;
+  display: flex;
+  justify-content: flex-end;
   box-shadow: 0 5px 15px rgba(5, 27, 58, 0.05);
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  transition: transform 0.3s ease;
-  border: 1px solid rgba(96, 154, 187, 0.1);
-}
-
-.stat-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 20px rgba(5, 27, 58, 0.1);
-}
-.stat-card.total {
-  border-left: 4px solid #609abb;
-}
-.stat-card.active {
-  border-left: 4px solid #10b981;
-}
-.stat-card.inactive {
-  border-left: 4px solid #ef4444;
-}
-
-.stat-icon {
-  font-size: 2rem;
-  background: #e4f4fc;
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.stat-value {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: #051b3a;
-  line-height: 1.2;
-}
-.stat-label {
-  font-size: 0.85rem;
-  color: #5d7a90;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-/* Filters */
-.filters-section {
-  background: white;
-  border-radius: 16px;
-  padding: 1.25rem;
-  margin-bottom: 2rem;
-  display: flex;
-  gap: 1.5rem;
-  flex-wrap: wrap;
-  align-items: center;
-  box-shadow: 0 5px 15px rgba(5, 27, 58, 0.05);
-}
-
-.search-box {
-  position: relative;
-  flex: 1;
-  min-width: 250px;
-}
-
-.search-icon {
-  position: absolute;
-  left: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 18px;
-  height: 18px;
-  color: #b4cbd8;
-}
-
-.search-input {
-  width: 100%;
-  padding: 0.875rem 2.5rem 0.875rem 3rem;
-  border: 2px solid #e4f4fc;
-  border-radius: 12px;
-  font-size: 0.95rem;
-  transition: all 0.3s ease;
-  background: #e4f4fc;
-  color: #051b3a;
-  box-sizing: border-box;
-}
-
-.search-input:focus {
-  outline: none;
-  border-color: #609abb;
-  background: white;
-  box-shadow: 0 0 0 4px rgba(96, 154, 187, 0.1);
-}
-
-.clear-search {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: none;
-  border: none;
-  color: #b4cbd8;
-  font-size: 1.2rem;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 50%;
-  transition: all 0.3s ease;
-}
-
-.clear-search:hover {
-  color: #609abb;
-  background: rgba(96, 154, 187, 0.1);
 }
 
 .per-page-selector {
@@ -617,6 +535,7 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
   align-items: center;
   gap: 0.5rem;
 }
+
 .per-page-label {
   font-size: 0.9rem;
   color: #5d7a90;
@@ -898,7 +817,7 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
   transform: translateY(-2px);
 }
 
-/* Pagination con números */
+/* Pagination */
 .pagination-section {
   display: flex;
   justify-content: center;
@@ -997,19 +916,8 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
     width: 100%;
     justify-content: center;
   }
-  .filters-section {
-    flex-direction: column;
-    gap: 1rem;
-  }
-  .search-box {
-    width: 100%;
-  }
-  .per-page-selector {
-    width: 100%;
-    justify-content: space-between;
-  }
-  .per-page-select {
-    flex: 1;
+  .per-page-wrapper {
+    justify-content: center;
   }
   .category-content {
     flex-direction: column;
