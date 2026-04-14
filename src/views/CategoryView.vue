@@ -23,15 +23,41 @@ onMounted(() => {
   categoryStore.fetchCategories()
 })
 
-const hasResults = computed(() => {
-  return categoryStore.categories.length > 0
-})
+const hasResults = computed(() => categoryStore.categories.length > 0)
 
 const noResultsMessage = computed(() => {
   if (categoryStore.searchQuery) {
     return `No se encontraron categorías con "${categoryStore.searchQuery}"`
   }
   return 'No hay categorías disponibles'
+})
+
+// Paginación con números (igual que productos)
+const visiblePages = computed(() => {
+  if (!categoryStore.meta) return []
+  const pages: number[] = []
+  const total = categoryStore.meta.totalPages
+  const current = categoryStore.currentPage
+
+  if (total <= 7) {
+    for (let i = 1; i <= total; i++) pages.push(i)
+  } else if (current <= 4) {
+    for (let i = 1; i <= 5; i++) pages.push(i)
+    pages.push(-1)
+    pages.push(total)
+  } else if (current >= total - 3) {
+    pages.push(1)
+    pages.push(-1)
+    for (let i = total - 4; i <= total; i++) pages.push(i)
+  } else {
+    pages.push(1)
+    pages.push(-1)
+    for (let i = current - 1; i <= current + 1; i++) pages.push(i)
+    pages.push(-1)
+    pages.push(total)
+  }
+
+  return pages
 })
 
 function handleCreate() {
@@ -111,7 +137,6 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
   toastMessage.value = message
   toastType.value = type
   showToast.value = true
-
   setTimeout(() => {
     showToast.value = false
   }, 3000)
@@ -120,7 +145,7 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
 
 <template>
   <div class="categories-view">
-    <!-- Toast Notification (se mantiene igual) -->
+    <!-- Toast Notification -->
     <Transition name="toast">
       <div v-if="showToast" :class="['toast', toastType]">
         <span class="toast-icon">{{ toastType === 'success' ? '✓' : '✗' }}</span>
@@ -128,7 +153,7 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
       </div>
     </Transition>
 
-    <!-- Header (se mantiene igual) -->
+    <!-- Header -->
     <div class="header">
       <div class="header-content">
         <div class="title-section">
@@ -141,7 +166,7 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
         </button>
       </div>
 
-      <!-- Stats Cards (se mantiene igual) -->
+      <!-- Stats Cards -->
       <div class="stats-grid">
         <div class="stat-card total">
           <div class="stat-icon">📋</div>
@@ -173,7 +198,7 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
       </div>
     </div>
 
-    <!-- Search and Filters (se mantiene igual) -->
+    <!-- Search and Filters -->
     <div class="filters-section">
       <div class="search-box">
         <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -217,19 +242,19 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
       </div>
     </div>
 
-    <!-- Loading State (se mantiene igual) -->
+    <!-- Loading State -->
     <div v-if="categoryStore.loading" class="loading-state">
       <div class="spinner"></div>
       <p>Cargando categorías...</p>
     </div>
 
-    <!-- Error State (se mantiene igual) -->
+    <!-- Error State -->
     <div v-else-if="categoryStore.error" class="error-message">
       <span class="error-icon">⚠️</span>
       {{ categoryStore.error }}
     </div>
 
-    <!-- No Results (se mantiene igual) -->
+    <!-- No Results -->
     <div v-else-if="!hasResults" class="empty-state">
       <div class="empty-icon">📋</div>
       <h3>No hay categorías</h3>
@@ -239,7 +264,7 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
       </button>
     </div>
 
-    <!-- Categories List (se mantiene igual) -->
+    <!-- Categories List -->
     <div v-else class="categories-list">
       <div
         v-for="category in categoryStore.sortedCategories"
@@ -267,9 +292,8 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
               {{ category.isActive ? 'Activo' : 'Inactivo' }}
             </button>
 
-            <button @click="handleEdit(category)" class="btn-icon edit" title="Editar">✏️</button>
-
-            <button @click="confirmDelete(category.id)" class="btn-icon delete" title="Eliminar">
+            <button @click="handleEdit(category)" class="btn-action edit" title="Editar">✏️</button>
+            <button @click="confirmDelete(category.id)" class="btn-action delete" title="Eliminar">
               🗑️
             </button>
           </div>
@@ -277,43 +301,73 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
       </div>
     </div>
 
-    <!-- Pagination (se mantiene igual) -->
-    <div v-if="categoryStore.meta && categoryStore.meta.totalPages > 1" class="pagination">
+    <!-- Pagination con números (igual que productos) -->
+    <div v-if="categoryStore.meta && categoryStore.meta.totalPages > 1" class="pagination-section">
       <button
-        @click="categoryStore.setPage(categoryStore.currentPage - 1)"
-        :disabled="categoryStore.currentPage === 1"
         class="pagination-btn"
         :class="{ disabled: categoryStore.currentPage === 1 }"
+        :disabled="categoryStore.currentPage === 1"
+        @click="categoryStore.setPage(categoryStore.currentPage - 1)"
       >
-        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M15 19l-7-7 7-7"
-          />
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <polyline points="15 18 9 12 15 6"></polyline>
         </svg>
         Anterior
       </button>
+
+      <div class="page-numbers">
+        <button
+          v-for="page in visiblePages"
+          :key="page"
+          class="page-number"
+          :class="{
+            active: page === categoryStore.currentPage,
+            ellipsis: page === -1,
+          }"
+          @click="page !== -1 && categoryStore.setPage(page)"
+        >
+          {{ page === -1 ? '...' : page }}
+        </button>
+      </div>
 
       <span class="pagination-info">
         Página {{ categoryStore.currentPage }} de {{ categoryStore.meta.totalPages }}
       </span>
 
       <button
-        @click="categoryStore.setPage(categoryStore.currentPage + 1)"
-        :disabled="categoryStore.currentPage === categoryStore.meta.totalPages"
         class="pagination-btn"
         :class="{ disabled: categoryStore.currentPage === categoryStore.meta.totalPages }"
+        :disabled="categoryStore.currentPage === categoryStore.meta.totalPages"
+        @click="categoryStore.setPage(categoryStore.currentPage + 1)"
       >
         Siguiente
-        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <polyline points="9 18 15 12 9 6"></polyline>
         </svg>
       </button>
     </div>
 
-    <!-- Category Modal (se mantiene igual) -->
+    <!-- Category Modal -->
     <CategoryModal
       :show="showModal"
       :category="selectedCategory"
@@ -323,7 +377,7 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
       @save="handleSave"
     />
 
-    <!-- Delete Confirmation Modal - AHORA USA EL NUEVO COMPONENTE -->
+    <!-- Delete Confirmation Modal -->
     <ConfirmationModal
       :show="showDeleteConfirm"
       title="¿Eliminar categoría?"
@@ -338,7 +392,6 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
 </template>
 
 <style scoped>
-/* Todos los estilos se mantienen IGUAL, solo eliminamos las clases del modal antiguo */
 .categories-view {
   min-height: 100vh;
   background-color: #e4f4fc;
@@ -359,33 +412,19 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  animation: slideIn 0.3s ease;
 }
 
 .toast.success {
   background: linear-gradient(145deg, #10b981, #059669);
 }
-
 .toast.error {
   background: linear-gradient(145deg, #ef4444, #dc2626);
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
 }
 
 .toast-enter-active,
 .toast-leave-active {
   transition: all 0.3s ease;
 }
-
 .toast-enter-from,
 .toast-leave-to {
   opacity: 0;
@@ -446,7 +485,7 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
   font-size: 1.1rem;
 }
 
-/* Stats Grid */
+/* Stats */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -470,15 +509,12 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
   transform: translateY(-3px);
   box-shadow: 0 8px 20px rgba(5, 27, 58, 0.1);
 }
-
 .stat-card.total {
   border-left: 4px solid #609abb;
 }
-
 .stat-card.active {
   border-left: 4px solid #10b981;
 }
-
 .stat-card.inactive {
   border-left: 4px solid #ef4444;
 }
@@ -494,17 +530,12 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
   justify-content: center;
 }
 
-.stat-content {
-  flex: 1;
-}
-
 .stat-value {
   font-size: 1.8rem;
   font-weight: 700;
   color: #051b3a;
   line-height: 1.2;
 }
-
 .stat-label {
   font-size: 0.85rem;
   color: #5d7a90;
@@ -513,7 +544,7 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
   letter-spacing: 0.5px;
 }
 
-/* Filters Section */
+/* Filters */
 .filters-section {
   background: white;
   border-radius: 16px;
@@ -551,6 +582,7 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
   transition: all 0.3s ease;
   background: #e4f4fc;
   color: #051b3a;
+  box-sizing: border-box;
 }
 
 .search-input:focus {
@@ -585,7 +617,6 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
   align-items: center;
   gap: 0.5rem;
 }
-
 .per-page-label {
   font-size: 0.9rem;
   color: #5d7a90;
@@ -609,7 +640,7 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
   background: white;
 }
 
-/* Loading State */
+/* Loading */
 .loading-state {
   display: flex;
   flex-direction: column;
@@ -637,7 +668,7 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
   }
 }
 
-/* Error Message */
+/* Error */
 .error-message {
   background: #fee2e2;
   color: #dc2626;
@@ -656,7 +687,7 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
   font-size: 1.25rem;
 }
 
-/* Empty State */
+/* Empty */
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -686,7 +717,6 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
   color: #051b3a;
   margin: 0 0 0.5rem 0;
 }
-
 .empty-state p {
   color: #5d7a90;
   margin: 0 0 1.5rem 0;
@@ -772,11 +802,9 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
   font-weight: 600;
   color: #051b3a;
 }
-
 .category-header h3.text-inactive {
   color: #b4cbd8;
 }
-
 .category-description {
   margin: 0;
   color: #5d7a90;
@@ -809,17 +837,14 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
   border-color: #10b981;
   color: #10b981;
 }
-
 .btn-status.active:hover {
   background: #10b981;
   color: white;
 }
-
 .btn-status.inactive {
   border-color: #ef4444;
   color: #ef4444;
 }
-
 .btn-status.inactive:hover {
   background: #ef4444;
   color: white;
@@ -831,20 +856,17 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
   border-radius: 50%;
   transition: all 0.3s ease;
 }
-
 .status-dot.active {
   background: #10b981;
 }
-
-.status-dot.inactive {
+.status-dot:not(.active) {
   background: #ef4444;
 }
-
 .btn-status:hover .status-dot {
   background: white;
 }
 
-.btn-icon {
+.btn-action {
   width: 36px;
   height: 36px;
   border: none;
@@ -857,30 +879,27 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
   font-size: 1rem;
 }
 
-.btn-icon.edit {
+.btn-action.edit {
   background: #e4f4fc;
   color: #609abb;
 }
-
-.btn-icon.edit:hover {
+.btn-action.edit:hover {
   background: #609abb;
   color: white;
   transform: translateY(-2px);
 }
-
-.btn-icon.delete {
+.btn-action.delete {
   background: #fee2e2;
   color: #ef4444;
 }
-
-.btn-icon.delete:hover {
+.btn-action.delete:hover {
   background: #ef4444;
   color: white;
   transform: translateY(-2px);
 }
 
-/* Pagination */
-.pagination {
+/* Pagination con números */
+.pagination-section {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -909,11 +928,54 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
   color: white;
   border-color: #609abb;
   transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(96, 154, 187, 0.3);
 }
 
 .pagination-btn.disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.page-numbers {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.page-number {
+  min-width: 40px;
+  height: 40px;
+  padding: 0 0.5rem;
+  background: white;
+  border: 2px solid #e4f4fc;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #5d7a90;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.page-number:hover:not(.active):not(.ellipsis) {
+  background: #e4f4fc;
+  border-color: #609abb;
+  color: #051b3a;
+  transform: translateY(-2px);
+}
+
+.page-number.active {
+  background: #609abb;
+  border-color: #609abb;
+  color: white;
+  box-shadow: 0 5px 15px rgba(96, 154, 187, 0.3);
+}
+
+.page-number.ellipsis {
+  border-color: transparent;
+  cursor: default;
+  background: transparent;
 }
 
 .pagination-info {
@@ -922,66 +984,51 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
   font-size: 0.9rem;
 }
 
-.pagination-btn .icon {
-  width: 16px;
-  height: 16px;
-}
-
-/* ❗ ELIMINAMOS LAS CLASES DEL MODAL ANTIGUO: .modal-overlay, .confirm-modal, etc. */
-
 /* Responsive */
 @media (max-width: 768px) {
   .categories-view {
     padding: 1rem;
   }
-
   .header-content {
     flex-direction: column;
     align-items: stretch;
   }
-
   .btn-create {
     width: 100%;
     justify-content: center;
   }
-
   .filters-section {
     flex-direction: column;
     gap: 1rem;
   }
-
   .search-box {
     width: 100%;
   }
-
   .per-page-selector {
     width: 100%;
     justify-content: space-between;
   }
-
   .per-page-select {
     flex: 1;
   }
-
   .category-content {
     flex-direction: column;
     align-items: stretch;
   }
-
   .category-actions {
     justify-content: flex-end;
   }
-
-  .pagination {
+  .pagination-section {
     flex-direction: column;
     gap: 1rem;
   }
-
   .pagination-btn {
     width: 100%;
     justify-content: center;
   }
-
+  .page-numbers {
+    order: -1;
+  }
   .toast {
     left: 20px;
     right: 20px;
@@ -993,15 +1040,21 @@ function triggerToast(message: string, type: 'success' | 'error' = 'success') {
   .category-actions {
     justify-content: stretch;
   }
-
   .btn-status {
     flex: 1;
   }
-
-  .btn-icon {
+  .btn-action {
     width: 48px;
     height: 48px;
     font-size: 1.2rem;
+  }
+  .page-numbers {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .page-number {
+    min-width: 35px;
+    height: 35px;
   }
 }
 </style>

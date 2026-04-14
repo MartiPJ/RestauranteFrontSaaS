@@ -16,6 +16,11 @@ export const useProductStore = defineStore('product', () => {
   const totalItems = ref(0)
   const totalPages = ref(0)
 
+  // Filtros
+  const searchQuery = ref('')
+  const availabilityFilter = ref<boolean | null>(null) // null = todos, true = disponibles, false = no disponibles
+  const categoryFilter = ref<string | null>(null)
+
   // Computed
   const hasNextPage = computed(() => currentPage.value < totalPages.value)
   const hasPrevPage = computed(() => currentPage.value > 1)
@@ -25,7 +30,11 @@ export const useProductStore = defineStore('product', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await productService.getProducts(currentPage.value, itemsPerPage.value)
+      const response = await productService.getProducts(currentPage.value, itemsPerPage.value, {
+        search: searchQuery.value,
+        isAvailable: availabilityFilter.value,
+        categoryId: categoryFilter.value,
+      })
       products.value = response.data
       totalItems.value = response.meta.totalItems
       totalPages.value = response.meta.totalPages
@@ -93,7 +102,33 @@ export const useProductStore = defineStore('product', () => {
   function setItemsPerPage(items: number) {
     itemsPerPage.value = items
     currentPage.value = 1
-    fetchProducts()
+  }
+
+  function setSearchQuery(query: string) {
+    searchQuery.value = query
+    currentPage.value = 1
+  }
+
+  function clearSearch() {
+    searchQuery.value = ''
+    currentPage.value = 1
+  }
+
+  function setAvailabilityFilter(value: boolean | null) {
+    availabilityFilter.value = value
+    currentPage.value = 1
+  }
+
+  function setCategoryFilter(categoryId: string | null) {
+    categoryFilter.value = categoryId
+    currentPage.value = 1
+  }
+
+  function clearFilters() {
+    searchQuery.value = ''
+    availabilityFilter.value = null
+    categoryFilter.value = null
+    currentPage.value = 1
   }
 
   function nextPage() {
@@ -128,12 +163,20 @@ export const useProductStore = defineStore('product', () => {
     totalPages,
     hasNextPage,
     hasPrevPage,
+    searchQuery,
+    availabilityFilter,
+    categoryFilter,
     fetchProducts,
     fetchCategories,
     createProduct,
     updateProduct,
     deleteProduct,
     setItemsPerPage,
+    setSearchQuery,
+    clearSearch,
+    setAvailabilityFilter,
+    setCategoryFilter,
+    clearFilters,
     nextPage,
     prevPage,
     goToPage,

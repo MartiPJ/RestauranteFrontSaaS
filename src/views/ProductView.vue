@@ -2,7 +2,7 @@
 <template>
   <div class="products-view">
     <div class="container">
-      <!-- Header (se mantiene igual) -->
+      <!-- Header -->
       <div class="page-header">
         <div class="title-section">
           <h1>Gestión de Productos</h1>
@@ -27,7 +27,7 @@
         </button>
       </div>
 
-      <!-- Stats Cards (se mantiene igual) -->
+      <!-- Stats Cards -->
       <div class="stats-grid">
         <div class="stat-card total">
           <div class="stat-icon">📦</div>
@@ -45,36 +45,136 @@
         </div>
       </div>
 
-      <!-- Controles (se mantiene igual) -->
-      <div class="controls-section">
-        <div class="items-per-page">
-          <label for="itemsPerPage">Mostrar:</label>
-          <select
-            id="itemsPerPage"
-            v-model.number="selectedItemsPerPage"
-            @change="handleItemsPerPageChange"
-            class="per-page-select"
+      <!-- Buscador y Filtros -->
+      <div class="filters-section">
+        <!-- Búsqueda -->
+        <div class="search-box">
+          <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+          <input
+            type="text"
+            :value="store.searchQuery"
+            @input="handleSearch"
+            placeholder="Buscar por nombre..."
+            class="search-input"
+          />
+          <button
+            v-if="store.searchQuery"
+            @click="store.clearSearch()"
+            class="clear-search"
+            title="Limpiar búsqueda"
           >
-            <option :value="5">5 productos</option>
-            <option :value="10">10 productos</option>
-            <option :value="20">20 productos</option>
-          </select>
+            ✕
+          </button>
         </div>
 
-        <div class="results-info">
-          <span class="results-badge">
-            {{ startItem }} - {{ endItem }} de {{ store.totalItems }}
-          </span>
+        <!-- Filtro disponibilidad -->
+        <div class="filter-group">
+          <span class="filter-label">Disponibilidad:</span>
+          <div class="filter-chips">
+            <button
+              class="chip"
+              :class="{ active: store.availabilityFilter === null }"
+              @click="store.setAvailabilityFilter(null)"
+            >
+              Todos
+            </button>
+            <button
+              class="chip available"
+              :class="{ active: store.availabilityFilter === true }"
+              @click="store.setAvailabilityFilter(true)"
+            >
+              <span class="chip-dot"></span>
+              Disponibles
+            </button>
+            <button
+              class="chip unavailable"
+              :class="{ active: store.availabilityFilter === false }"
+              @click="store.setAvailabilityFilter(false)"
+            >
+              <span class="chip-dot"></span>
+              No disponibles
+            </button>
+          </div>
         </div>
+
+        <!-- Filtro categoría - MEJORADO -->
+        <div class="filter-group category-filter-group">
+          <span class="filter-label">Categoría:</span>
+          <div class="category-select-wrapper">
+            <select
+              :value="store.categoryFilter ?? ''"
+              @change="handleCategoryChange"
+              class="category-select"
+            >
+              <option value="">Todas las categorías</option>
+              <option v-for="cat in store.categories" :key="cat.id" :value="cat.id">
+                {{ cat.name }}
+              </option>
+            </select>
+            <svg class="select-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Items por página -->
+        <div class="per-page-selector">
+          <span class="filter-label">Mostrar:</span>
+          <div class="per-page-wrapper">
+            <select
+              :value="store.itemsPerPage"
+              @change="handleItemsPerPageChange"
+              class="per-page-select"
+            >
+              <option v-for="option in itemsPerPageOptions" :key="option" :value="option">
+                {{ option }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Botón limpiar filtros - MOVIDO AQUÍ -->
+        <button
+          v-if="hasActiveFilters"
+          class="btn-clear-filters-main"
+          @click="store.clearFilters()"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+          Limpiar filtros
+        </button>
       </div>
 
-      <!-- Loading (se mantiene igual) -->
+      <!-- Barra de resultados -->
+      <div class="results-bar">
+        <span class="results-badge">
+          {{ startItem }}–{{ endItem }} de {{ store.totalItems }} productos
+        </span>
+      </div>
+
+      <!-- Loading -->
       <div v-if="store.loading" class="loading-state">
         <div class="spinner"></div>
         <p>Cargando productos...</p>
       </div>
 
-      <!-- Error (se mantiene igual) -->
+      <!-- Error -->
       <div v-else-if="store.error" class="error-message">
         <span class="error-icon">⚠️</span>
         <p>{{ store.error }}</p>
@@ -84,7 +184,7 @@
         </button>
       </div>
 
-      <!-- Products Grid (se mantiene igual) -->
+      <!-- Products Grid -->
       <div v-else-if="store.products.length > 0" class="products-grid">
         <ProductCard
           v-for="product in store.products"
@@ -95,18 +195,22 @@
         />
       </div>
 
-      <!-- Empty State (se mantiene igual) -->
+      <!-- Empty State -->
       <div v-else class="empty-state">
         <div class="empty-icon">🍽️</div>
         <h3>No hay productos</h3>
-        <p>Comienza agregando tu primer producto al menú</p>
-        <button class="btn btn-primary" @click="openCreateModal">
+        <p v-if="hasActiveFilters">No se encontraron productos con los filtros aplicados</p>
+        <p v-else>Comienza agregando tu primer producto al menú</p>
+        <button v-if="hasActiveFilters" class="btn-clear-alt" @click="store.clearFilters()">
+          Limpiar filtros
+        </button>
+        <button v-else class="btn btn-primary" @click="openCreateModal">
           <span class="btn-icon">➕</span>
           Agregar Producto
         </button>
       </div>
 
-      <!-- Pagination (se mantiene igual) -->
+      <!-- Pagination -->
       <div v-if="store.totalPages > 1" class="pagination-section">
         <button
           class="pagination-btn"
@@ -116,8 +220,8 @@
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
+            width="16"
+            height="16"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -127,7 +231,7 @@
           >
             <polyline points="15 18 9 12 15 6"></polyline>
           </svg>
-          <span>Anterior</span>
+          Anterior
         </button>
 
         <div class="page-numbers">
@@ -145,17 +249,21 @@
           </button>
         </div>
 
+        <span class="pagination-info">
+          Página {{ store.currentPage }} de {{ store.totalPages }}
+        </span>
+
         <button
           class="pagination-btn"
           :class="{ disabled: !store.hasNextPage }"
           :disabled="!store.hasNextPage"
           @click="store.nextPage()"
         >
-          <span>Siguiente</span>
+          Siguiente
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
+            width="16"
+            height="16"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -169,7 +277,7 @@
       </div>
     </div>
 
-    <!-- Modal Form (se mantiene igual) -->
+    <!-- Modal Form -->
     <ProductForm
       v-if="showModal"
       :product="selectedProduct"
@@ -179,7 +287,7 @@
       @close="closeModal"
     />
 
-    <!-- Delete Confirmation Modal - AHORA USA EL NUEVO COMPONENTE -->
+    <!-- Delete Confirmation Modal -->
     <ConfirmationModal
       :show="showDeleteConfirm"
       title="¿Eliminar producto?"
@@ -207,15 +315,19 @@ const showModal = ref(false)
 const selectedProduct = ref<Product | null>(null)
 const showDeleteConfirm = ref(false)
 const productToDelete = ref<string | null>(null)
-const selectedItemsPerPage = ref(20)
 
-const startItem = computed(() => {
-  return store.products.length > 0 ? (store.currentPage - 1) * store.itemsPerPage + 1 : 0
-})
+const itemsPerPageOptions = [5, 10, 20]
 
-const endItem = computed(() => {
-  return Math.min(store.currentPage * store.itemsPerPage, store.totalItems)
-})
+// ── Computed ────────────────────────────────────────────
+const startItem = computed(() =>
+  store.products.length > 0 ? (store.currentPage - 1) * store.itemsPerPage + 1 : 0,
+)
+
+const endItem = computed(() => Math.min(store.currentPage * store.itemsPerPage, store.totalItems))
+
+const hasActiveFilters = computed(
+  () => !!store.searchQuery || store.availabilityFilter !== null || !!store.categoryFilter,
+)
 
 const visiblePages = computed(() => {
   const pages: number[] = []
@@ -223,30 +335,27 @@ const visiblePages = computed(() => {
   const current = store.currentPage
 
   if (total <= 7) {
-    for (let i = 1; i <= total; i++) {
-      pages.push(i)
-    }
+    for (let i = 1; i <= total; i++) pages.push(i)
+  } else if (current <= 4) {
+    for (let i = 1; i <= 5; i++) pages.push(i)
+    pages.push(-1)
+    pages.push(total)
+  } else if (current >= total - 3) {
+    pages.push(1)
+    pages.push(-1)
+    for (let i = total - 4; i <= total; i++) pages.push(i)
   } else {
-    if (current <= 4) {
-      for (let i = 1; i <= 5; i++) pages.push(i)
-      pages.push(-1)
-      pages.push(total)
-    } else if (current >= total - 3) {
-      pages.push(1)
-      pages.push(-1)
-      for (let i = total - 4; i <= total; i++) pages.push(i)
-    } else {
-      pages.push(1)
-      pages.push(-1)
-      for (let i = current - 1; i <= current + 1; i++) pages.push(i)
-      pages.push(-1)
-      pages.push(total)
-    }
+    pages.push(1)
+    pages.push(-1)
+    for (let i = current - 1; i <= current + 1; i++) pages.push(i)
+    pages.push(-1)
+    pages.push(total)
   }
 
   return pages
 })
 
+// ── Handlers ────────────────────────────────────────────
 async function loadData() {
   try {
     await store.fetchCategories()
@@ -254,6 +363,24 @@ async function loadData() {
   } catch (error) {
     console.error('Error loading data:', error)
   }
+}
+
+function handleSearch(event: Event) {
+  const target = event.target as HTMLInputElement
+  store.setSearchQuery(target.value)
+  store.goToPage(1) // 🔥 IMPORTANTE
+}
+
+function handleCategoryChange(event: Event) {
+  const target = event.target as HTMLSelectElement
+  store.setCategoryFilter(target.value || null)
+  store.goToPage(1) // 🔥
+}
+
+function handleItemsPerPageChange(event: Event) {
+  const target = event.target as HTMLSelectElement
+  store.setItemsPerPage(Number(target.value))
+  store.goToPage(1) // 🔥
 }
 
 function openCreateModal() {
@@ -305,17 +432,12 @@ async function handleDelete() {
   }
 }
 
-function handleItemsPerPageChange() {
-  store.setItemsPerPage(selectedItemsPerPage.value)
-}
-
 onMounted(() => {
   loadData()
 })
 </script>
 
 <style scoped>
-/* Todos los estilos se mantienen IGUAL, solo eliminamos las clases del modal antiguo */
 .products-view {
   min-height: 100vh;
   background-color: #e4f4fc;
@@ -352,7 +474,7 @@ onMounted(() => {
   font-size: 1rem;
 }
 
-/* Stats Grid */
+/* Stats */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -376,11 +498,9 @@ onMounted(() => {
   transform: translateY(-3px);
   box-shadow: 0 8px 20px rgba(5, 27, 58, 0.1);
 }
-
 .stat-card.total {
   border-left: 4px solid #609abb;
 }
-
 .stat-card.categories {
   border-left: 4px solid #10b981;
 }
@@ -396,17 +516,12 @@ onMounted(() => {
   justify-content: center;
 }
 
-.stat-content {
-  flex: 1;
-}
-
 .stat-value {
   font-size: 1.8rem;
   font-weight: 700;
   color: #051b3a;
   line-height: 1.2;
 }
-
 .stat-label {
   font-size: 0.85rem;
   color: #5d7a90;
@@ -415,36 +530,173 @@ onMounted(() => {
   letter-spacing: 0.5px;
 }
 
-/* Controls Section */
-.controls-section {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
-  padding: 1rem 1.5rem;
+/* Filters Section */
+.filters-section {
   background: white;
   border-radius: 16px;
-  box-shadow: 0 5px 15px rgba(5, 27, 58, 0.05);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1rem;
+  display: flex;
+  gap: 1.25rem;
   flex-wrap: wrap;
-  gap: 1rem;
+  align-items: center;
+  box-shadow: 0 5px 15px rgba(5, 27, 58, 0.05);
 }
 
-.items-per-page {
+/* Search */
+.search-box {
+  position: relative;
+  flex: 1;
+  min-width: 220px;
+}
+
+.search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  color: #b4cbd8;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.75rem 2.5rem 0.75rem 3rem;
+  border: 2px solid #e4f4fc;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  background: #e4f4fc;
+  color: #051b3a;
+  box-sizing: border-box;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #609abb;
+  background: white;
+  box-shadow: 0 0 0 4px rgba(96, 154, 187, 0.1);
+}
+
+.clear-search {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #b4cbd8;
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.clear-search:hover {
+  color: #609abb;
+  background: rgba(96, 154, 187, 0.1);
+}
+
+/* Filter groups */
+.filter-group {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.625rem;
+  flex-wrap: wrap;
 }
 
-.items-per-page label {
+.filter-label {
+  font-size: 0.85rem;
   font-weight: 600;
-  color: #051b3a;
-  font-size: 0.9rem;
+  color: #5d7a90;
+  white-space: nowrap;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.4px;
+}
+
+/* Chips de disponibilidad */
+.filter-chips {
+  display: flex;
+  gap: 0.375rem;
+}
+
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.4rem 0.875rem;
+  border: 2px solid #e4f4fc;
+  border-radius: 30px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  background: #e4f4fc;
+  color: #5d7a90;
+}
+
+.chip:hover {
+  border-color: #609abb;
+  color: #609abb;
+  background: white;
+}
+
+.chip.active {
+  background: #609abb;
+  border-color: #609abb;
+  color: white;
+  box-shadow: 0 3px 10px rgba(96, 154, 187, 0.3);
+}
+
+.chip-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.8;
+}
+
+.chip.available .chip-dot {
+  background: #10b981;
+}
+.chip.unavailable .chip-dot {
+  background: #ef4444;
+}
+.chip.available.active .chip-dot,
+.chip.unavailable.active .chip-dot {
+  background: white;
+}
+
+/* Category select */
+.category-select {
+  padding: 0.5rem 2rem 0.5rem 0.875rem;
+  border: 2px solid #e4f4fc;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  background: #e4f4fc;
+  color: #051b3a;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  max-width: 200px;
+}
+
+.category-select:focus {
+  outline: none;
+  border-color: #609abb;
+  background: white;
+}
+
+/* Per page */
+.per-page-selector {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .per-page-select {
-  padding: 0.5rem 2rem 0.5rem 1rem;
+  padding: 0.5rem 2rem 0.5rem 0.875rem;
   border: 2px solid #e4f4fc;
   border-radius: 10px;
   font-size: 0.9rem;
@@ -460,21 +712,45 @@ onMounted(() => {
   background: white;
 }
 
-.results-info {
-  color: #5d7a90;
-  font-size: 0.9rem;
-  font-weight: 500;
+/* Results bar */
+.results-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  padding: 0 0.25rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
 }
 
 .results-badge {
   background: #e4f4fc;
   color: #609abb;
-  padding: 0.5rem 1rem;
+  padding: 0.4rem 1rem;
   border-radius: 30px;
   font-weight: 600;
+  font-size: 0.9rem;
 }
 
-/* Loading State */
+.btn-clear-filters {
+  padding: 0.4rem 1rem;
+  background: #fee2e2;
+  color: #ef4444;
+  border: 2px solid #fecaca;
+  border-radius: 30px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.btn-clear-filters:hover {
+  background: #ef4444;
+  color: white;
+  border-color: #ef4444;
+}
+
+/* Loading */
 .loading-state {
   display: flex;
   flex-direction: column;
@@ -501,13 +777,12 @@ onMounted(() => {
     transform: rotate(360deg);
   }
 }
-
 .loading-state p {
   color: #5d7a90;
   margin: 0;
 }
 
-/* Error Message */
+/* Error */
 .error-message {
   display: flex;
   flex-direction: column;
@@ -522,16 +797,7 @@ onMounted(() => {
 
 .error-icon {
   font-size: 2rem;
-  background: #fee2e2;
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #ef4444;
 }
-
 .error-message p {
   color: #5d7a90;
   margin: 0;
@@ -576,10 +842,26 @@ onMounted(() => {
   font-size: 1.3rem;
   color: #051b3a;
 }
-
 .empty-state p {
   margin: 0 0 1.5rem 0;
   color: #5d7a90;
+}
+
+.btn-clear-alt {
+  padding: 0.75rem 2rem;
+  background: #e4f4fc;
+  color: #609abb;
+  border: 2px solid #609abb;
+  border-radius: 30px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-clear-alt:hover {
+  background: #609abb;
+  color: white;
 }
 
 /* Pagination */
@@ -596,7 +878,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
+  padding: 0.625rem 1.25rem;
   background: white;
   border: 2px solid #e4f4fc;
   border-radius: 30px;
@@ -618,11 +900,6 @@ onMounted(() => {
 .pagination-btn.disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-.pagination-btn svg {
-  width: 18px;
-  height: 18px;
 }
 
 .page-numbers {
@@ -667,6 +944,12 @@ onMounted(() => {
   background: transparent;
 }
 
+.pagination-info {
+  padding: 0.5rem 1rem;
+  color: #5d7a90;
+  font-size: 0.9rem;
+}
+
 /* Buttons */
 .btn {
   display: inline-flex;
@@ -702,48 +985,46 @@ onMounted(() => {
   .products-view {
     padding: 1rem 0;
   }
-
   .page-header {
     flex-direction: column;
     align-items: stretch;
   }
-
   .btn-primary {
     width: 100%;
     justify-content: center;
   }
-
-  .controls-section {
+  .filters-section {
     flex-direction: column;
     align-items: stretch;
+    gap: 1rem;
   }
-
-  .items-per-page {
+  .search-box {
+    width: 100%;
+  }
+  .filter-group {
     justify-content: space-between;
   }
-
+  .filter-chips {
+    flex: 1;
+    justify-content: flex-end;
+  }
+  .per-page-selector {
+    justify-content: space-between;
+  }
   .per-page-select {
     flex: 1;
   }
-
-  .results-info {
-    text-align: center;
-  }
-
   .products-grid {
     grid-template-columns: 1fr;
   }
-
   .pagination-section {
     flex-direction: column;
     gap: 1rem;
   }
-
   .pagination-btn {
     width: 100%;
     justify-content: center;
   }
-
   .page-numbers {
     order: -1;
   }
@@ -753,17 +1034,212 @@ onMounted(() => {
   .stats-grid {
     grid-template-columns: 1fr;
   }
-
   .page-numbers {
     flex-wrap: wrap;
     justify-content: center;
   }
-
   .page-number {
     min-width: 35px;
     height: 35px;
   }
+  .filter-chips {
+    flex-wrap: wrap;
+  }
 }
 
-/* ❗ ELIMINAMOS LAS CLASES DEL MODAL ANTIGUO: .modal-overlay, .confirm-modal, etc. */
+/* Category Select Mejorado */
+.category-filter-group {
+  flex: 1;
+  min-width: 180px;
+}
+
+.category-select-wrapper {
+  position: relative;
+  flex: 1;
+}
+
+.category-select {
+  width: 100%;
+  padding: 0.625rem 2rem 0.625rem 1rem;
+  border: 2px solid #e4f4fc;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  background: #e4f4fc;
+  color: #051b3a;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  appearance: none;
+  font-weight: 500;
+}
+
+.category-select:hover {
+  border-color: #609abb;
+  background: white;
+}
+
+.category-select:focus {
+  outline: none;
+  border-color: #609abb;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(96, 154, 187, 0.1);
+}
+
+.select-arrow {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: #609abb;
+  pointer-events: none;
+  transition: transform 0.3s ease;
+}
+
+.category-select:focus + .select-arrow {
+  transform: translateY(-50%) rotate(180deg);
+}
+
+/* Per page wrapper */
+.per-page-wrapper {
+  position: relative;
+}
+
+.per-page-select {
+  padding: 0.625rem 2rem 0.625rem 1rem;
+  border: 2px solid #e4f4fc;
+  border-radius: 12px;
+  font-size: 0.9rem;
+  background: #e4f4fc;
+  color: #051b3a;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  appearance: none;
+  font-weight: 500;
+}
+
+.per-page-select:hover {
+  border-color: #609abb;
+  background: white;
+}
+
+.per-page-select:focus {
+  outline: none;
+  border-color: #609abb;
+  background: white;
+}
+
+/* Botón limpiar filtros principal */
+.btn-clear-filters-main {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: #fee2e2;
+  color: #ef4444;
+  border: 2px solid #fecaca;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+}
+
+.btn-clear-filters-main:hover {
+  background: #ef4444;
+  color: white;
+  border-color: #ef4444;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(239, 68, 68, 0.3);
+}
+
+.btn-clear-filters-main svg {
+  transition: transform 0.3s ease;
+}
+
+.btn-clear-filters-main:hover svg {
+  transform: rotate(90deg);
+}
+
+/* Results bar mejorado */
+.results-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-bottom: 1.5rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(96, 154, 187, 0.05);
+  border-radius: 12px;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.results-badge {
+  background: white;
+  color: #609abb;
+  padding: 0.4rem 1rem;
+  border-radius: 30px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  border: 1px solid rgba(96, 154, 187, 0.2);
+}
+
+/* Responsive updates */
+@media (max-width: 768px) {
+  .filters-section {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .filter-group {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .category-filter-group {
+    width: 100%;
+  }
+
+  .category-select-wrapper {
+    flex: 1;
+    max-width: none;
+  }
+
+  .btn-clear-filters-main {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .filter-chips {
+    flex: 1;
+    justify-content: flex-end;
+  }
+
+  .per-page-selector {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .per-page-wrapper {
+    min-width: 100px;
+  }
+}
+
+/* Animaciones */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.filters-section {
+  animation: slideDown 0.3s ease;
+}
 </style>

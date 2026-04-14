@@ -2,11 +2,33 @@
 import api from '@/utils/api'
 import type { ProductsResponse, ProductFormData, CategoriesResponse } from '@/types/product'
 
+export interface ProductFilters {
+  search?: string
+  isAvailable?: boolean | null
+  categoryId?: string | null
+}
+
 export const productService = {
-  async getProducts(page: number = 1, limit: number = 20): Promise<ProductsResponse> {
-    return api.get<ProductsResponse>(
-      `/api/products?page=${page}&limit=${limit}&sortBy=createdAt:DESC`,
-    )
+  async getProducts(
+    page: number = 1,
+    limit: number = 20,
+    filters: ProductFilters = {},
+  ): Promise<ProductsResponse> {
+    let endpoint = `/api/products?page=${page}&limit=${limit}&sortBy=createdAt:DESC`
+
+    if (filters.search && filters.search.trim()) {
+      endpoint += `&search=${encodeURIComponent(filters.search.trim())}`
+    }
+
+    if (filters.isAvailable !== null && filters.isAvailable !== undefined) {
+      endpoint += `&isAvailable=${filters.isAvailable}`
+    }
+
+    if (filters.categoryId) {
+      endpoint += `&categoryId=${filters.categoryId}`
+    }
+
+    return api.get<ProductsResponse>(endpoint)
   },
 
   async getProduct(id: string) {
