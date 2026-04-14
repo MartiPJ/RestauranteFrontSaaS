@@ -1,6 +1,6 @@
-<!-- src/components/StatsFiltersPanel.vue -->
+<!-- src/components/StatsFilterPanel.vue -->
 <!--
-  StatsFiltersPanel — Panel colapsable de estadísticas y filtros
+  StatsFilterPanel — Panel colapsable de estadísticas y filtros
 
   Props:
     stats: StatCard[]       — Tarjetas de estadísticas

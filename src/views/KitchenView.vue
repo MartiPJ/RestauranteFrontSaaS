@@ -14,24 +14,8 @@
           </div>
         </div>
 
+        <!-- Botón de actualizar FUERA del panel -->
         <div class="header-info">
-          <div class="stats">
-            <div class="stat-card">
-              <span class="stat-icon">📋</span>
-              <div class="stat-content">
-                <span class="stat-value">{{ activeOrders.length }}</span>
-                <span class="stat-label">Órdenes activas</span>
-              </div>
-            </div>
-            <div class="stat-card pending">
-              <span class="stat-icon">⏳</span>
-              <div class="stat-content">
-                <span class="stat-value">{{ pendingItemsCount }}</span>
-                <span class="stat-label">Items pendientes</span>
-              </div>
-            </div>
-          </div>
-
           <button @click="fetchOrders(false)" class="btn-refresh" :disabled="loading">
             <span class="refresh-icon" :class="{ spinning: loading || isRefreshing }">🔄</span>
             <span class="refresh-text">Actualizar</span>
@@ -39,22 +23,18 @@
         </div>
       </div>
 
-      <!-- Filtros -->
-      <div class="filters-section">
-        <button
-          v-for="filter in filters"
-          :key="filter.value"
-          @click="selectedFilter = filter.value"
-          class="filter-btn"
-          :class="{ active: selectedFilter === filter.value }"
-        >
-          <span class="filter-icon">{{ filter.icon }}</span>
-          <span class="filter-label">{{ filter.label }}</span>
-          <span v-if="filter.count > 0" class="filter-badge">
-            {{ filter.count }}
-          </span>
-        </button>
-      </div>
+      <!-- StatsFiltersPanel - Incluye estadísticas y filtros -->
+      <StatsFiltersPanel
+        :stats="statsData"
+        :filters="filterOptions"
+        v-model="selectedFilter"
+        v-model:searchQuery="searchQuery"
+        search-placeholder="Buscar por número de orden o mesa..."
+        :show-search="false"
+        :show-filters="true"
+      >
+        <!-- Slot para contenido extra entre stats y filtros -->
+      </StatsFiltersPanel>
     </header>
 
     <!-- Loading State -->
@@ -109,9 +89,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import KitchenOrderCard from '@/components/Kitchenordercard.vue'
+import StatsFiltersPanel from '@/components/StatsFilterPanel.vue'
 import { orderService } from '@/services/orderService'
 import type { Order, OrderProduct } from '@/types/order'
 import { OrderStatus, OrderItemStatus } from '@/types/order'
+import type { StatCard, FilterOption } from '@/types/statsFilter'
+import { f } from 'vue-router/dist/router-CWoNjPRp.mjs'
 
 // ===== STATE =====
 const orders = ref<Order[]>([])
@@ -119,6 +102,7 @@ const loading = ref(false)
 const isRefreshing = ref(false)
 const error = ref<string | null>(null)
 const selectedFilter = ref<string>('all')
+const searchQuery = ref('')
 
 const toast = ref({
   show: false,
@@ -130,6 +114,7 @@ let refreshInterval: number | null = null
 const REFRESH_INTERVAL = 10000 // 10 segundos
 
 // ===== COMPUTED =====
+
 // Órdenes activas (excluye entregadas, pagadas y canceladas)
 const activeOrders = computed(() => {
   return orders.value.filter(
@@ -151,54 +136,93 @@ const pendingItemsCount = computed(() => {
   }, 0)
 })
 
-// Contadores para filtros
-const orderCounts = computed(() => {
-  const counts = {
-    all: activeOrders.value.length,
-    [OrderStatus.OPEN]: 0,
-    [OrderStatus.IN_PROGRESS]: 0,
-    [OrderStatus.READY]: 0,
-  }
+// Contadores para estadísticas
+const statsData = computed<StatCard[]>(() => [
+  {
+    icon: '📋',
+    value: activeOrders.value.length,
+    label: 'Órdenes activas',
+    colorKey: 'default',
+  },
+  {
+    icon: '⏳',
+    value: pendingItemsCount.value,
+    label: 'Items pendientes',
+    colorKey: 'yellow',
+  },
+  {
+    icon: '🆕',
+    value: activeOrders.value.filter((o) => o.status === OrderStatus.OPEN).length,
+    label: 'Nuevas',
+    colorKey: 'green',
+  },
+  {
+    icon: '🔥',
+    value: activeOrders.value.filter((o) => o.status === OrderStatus.IN_PROGRESS).length,
+    label: 'En proceso',
+    colorKey: 'blue',
+  },
+  {
+    icon: '✅',
+    value: activeOrders.value.filter((o) => o.status === OrderStatus.READY).length,
+    label: 'Listas',
+    colorKey: 'purple',
+  },
+])
 
-  activeOrders.value.forEach((order) => {
-    if (order.status in counts) {
-      counts[order.status as keyof typeof counts]++
-    }
-  })
-
-  return counts
-})
-
-// Filtros disponibles
-const filters = computed(() => [
-  { value: 'all', label: 'Todas', icon: '📋', count: orderCounts.value.all },
+// Opciones de filtro
+const filterOptions = computed<FilterOption[]>(() => [
+  {
+    value: 'all',
+    label: 'Todas',
+    colorKey: 'default',
+    dot: true,
+  },
   {
     value: OrderStatus.OPEN,
     label: 'Nuevas',
-    icon: '🆕',
-    count: orderCounts.value[OrderStatus.OPEN],
+    colorKey: 'green',
+    dot: true,
   },
   {
     value: OrderStatus.IN_PROGRESS,
     label: 'En proceso',
-    icon: '🔥',
-    count: orderCounts.value[OrderStatus.IN_PROGRESS],
+    colorKey: 'blue',
+    dot: true,
   },
   {
     value: OrderStatus.READY,
     label: 'Listas',
-    icon: '✅',
-    count: orderCounts.value[OrderStatus.READY],
+    colorKey: 'purple',
+    dot: true,
   },
 ])
 
-// Órdenes filtradas
+// Órdenes filtradas (combinando filtro de estado y búsqueda)
 const filteredOrders = computed(() => {
-  if (selectedFilter.value === 'all') return activeOrders.value
-  return activeOrders.value.filter((order) => order.status === selectedFilter.value)
+  let result = activeOrders.value
+
+  // Filtrar por estado
+  if (selectedFilter.value !== 'all') {
+    result = result.filter((order) => order.status === selectedFilter.value)
+  }
+
+  // Filtrar por búsqueda
+  if (searchQuery.value) {
+    const query = searchQuery.value.toLowerCase()
+    result = result.filter(
+      (order) =>
+        order.orderNumber.toLowerCase().includes(query) ||
+        order.table?.tableNumber?.toLowerCase().includes(query),
+      //order.customerName?.toLowerCase().includes(query),
+    )
+  }
+
+  return result
 })
 
 // ===== METHODS =====
+
 // Obtener órdenes con sus productos
 const fetchOrders = async (silent = false) => {
   if (!silent) loading.value = true
@@ -397,63 +421,6 @@ onUnmounted(() => {
   flex-wrap: wrap;
 }
 
-/* ===== STATS ===== */
-.stats {
-  display: flex;
-  gap: 1rem;
-}
-
-.stat-card {
-  background: #e4f4fc;
-  padding: 0.75rem 1.25rem;
-  border-radius: 100px;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  border: 1px solid rgba(96, 154, 187, 0.2);
-  transition: all 0.3s ease;
-}
-
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(96, 154, 187, 0.2);
-}
-
-.stat-card.pending {
-  background: #fef3c7;
-  border-color: #f59e0b;
-}
-
-.stat-icon {
-  font-size: 1.25rem;
-}
-
-.stat-content {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.stat-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #051b3a;
-}
-
-.stat-label {
-  font-size: 0.9rem;
-  color: #5d7a90;
-  font-weight: 500;
-}
-
-.stat-card.pending .stat-value {
-  color: #f59e0b;
-}
-
-.stat-card.pending .stat-label {
-  color: #b45309;
-}
-
 /* ===== BOTÓN REFRESH ===== */
 .btn-refresh {
   display: flex;
@@ -498,59 +465,6 @@ onUnmounted(() => {
   to {
     transform: rotate(360deg);
   }
-}
-
-/* ===== FILTROS ===== */
-.filters-section {
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-}
-
-.filter-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1.5rem;
-  background: #e4f4fc;
-  border: 2px solid transparent;
-  border-radius: 12px;
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #5d7a90;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  position: relative;
-}
-
-.filter-btn:hover {
-  border-color: #609abb;
-  background: white;
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(96, 154, 187, 0.15);
-}
-
-.filter-btn.active {
-  background: #609abb;
-  color: white;
-  border-color: #609abb;
-}
-
-.filter-icon {
-  font-size: 1.1rem;
-}
-
-.filter-badge {
-  background: rgba(0, 0, 0, 0.1);
-  padding: 0.2rem 0.6rem;
-  border-radius: 100px;
-  font-size: 0.8rem;
-  font-weight: 700;
-  margin-left: 0.25rem;
-}
-
-.filter-btn.active .filter-badge {
-  background: rgba(255, 255, 255, 0.3);
 }
 
 /* ===== ESTADOS DE CARGA ===== */
@@ -757,26 +671,7 @@ onUnmounted(() => {
     flex-direction: column;
   }
 
-  .stats {
-    width: 100%;
-    flex-direction: column;
-  }
-
-  .stat-card {
-    width: 100%;
-    justify-content: center;
-  }
-
   .btn-refresh {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .filters-section {
-    flex-direction: column;
-  }
-
-  .filter-btn {
     width: 100%;
     justify-content: center;
   }
@@ -793,15 +688,15 @@ onUnmounted(() => {
 }
 
 @media (max-width: 480px) {
-  .stat-content {
-    flex-direction: column;
-    gap: 0.25rem;
+  .loading-state,
+  .error-state,
+  .empty-state {
+    padding: 2rem 1rem;
   }
 }
 
 /* ===== OPTIMIZACIONES TÁCTILES ===== */
 @media (hover: none) and (pointer: coarse) {
-  .filter-btn,
   .btn-refresh,
   .btn-retry {
     padding: 1rem 1.5rem;

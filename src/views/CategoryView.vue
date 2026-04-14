@@ -255,26 +255,31 @@ watch(
         search-placeholder="Buscar por nombre..."
         :show-search="true"
         :show-filters="false"
-      />
+      >
+        <!-- SLOT EXTRA -->
+        <template #extra>
+          <div class="sfp-filter-group">
+            <span class="sfp-filter-label">Mostrar:</span>
+
+            <div class="sfp-per-page-wrapper">
+              <select
+                :value="categoryStore.itemsPerPage"
+                @change="
+                  categoryStore.setItemsPerPage(Number(($event.target as HTMLSelectElement).value))
+                "
+                class="sfp-per-page-select"
+              >
+                <option v-for="option in itemsPerPageOptions" :key="option" :value="option">
+                  {{ option }}
+                </option>
+              </select>
+            </div>
+          </div>
+        </template>
+      </StatsFiltersPanel>
     </div>
 
     <!-- Selector de items por página (fuera del panel de filtros) -->
-    <div class="per-page-wrapper">
-      <div class="per-page-selector">
-        <span class="per-page-label">Mostrar:</span>
-        <select
-          :value="categoryStore.itemsPerPage"
-          @change="
-            categoryStore.setItemsPerPage(Number(($event.target as HTMLSelectElement).value))
-          "
-          class="per-page-select"
-        >
-          <option v-for="option in itemsPerPageOptions" :key="option" :value="option">
-            {{ option }}
-          </option>
-        </select>
-      </div>
-    </div>
 
     <!-- Loading State -->
     <div v-if="categoryStore.loading" class="loading-state">
@@ -519,44 +524,48 @@ watch(
   font-size: 1.1rem;
 }
 
-/* Per Page Selector */
-.per-page-wrapper {
-  background: white;
-  border-radius: 16px;
-  padding: 1rem 1.5rem;
-  margin-bottom: 1.5rem;
-  display: flex;
-  justify-content: flex-end;
-  box-shadow: 0 5px 15px rgba(5, 27, 58, 0.05);
-}
-
-.per-page-selector {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.per-page-label {
-  font-size: 0.9rem;
-  color: #5d7a90;
-  white-space: nowrap;
-}
-
-.per-page-select {
-  padding: 0.5rem 2rem 0.5rem 1rem;
-  border: 2px solid #e4f4fc;
-  border-radius: 10px;
-  font-size: 0.9rem;
-  background: #e4f4fc;
-  color: #051b3a;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
 .per-page-select:focus {
   outline: none;
   border-color: #609abb;
   background: white;
+}
+
+/* Integración con StatsFiltersPanel */
+.sfp-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.sfp-filter-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #5d7a90;
+  white-space: nowrap;
+}
+
+.sfp-per-page-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.sfp-per-page-select {
+  padding: 0.45rem 1.75rem 0.45rem 0.85rem;
+  border: 2px solid #e4f4fc;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  background: #e4f4fc;
+  color: #051b3a;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.sfp-per-page-select:focus {
+  outline: none;
+  border-color: #609abb;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(96, 154, 187, 0.1);
 }
 
 /* Loading */
