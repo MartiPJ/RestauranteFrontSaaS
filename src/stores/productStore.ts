@@ -25,20 +25,48 @@ export const useProductStore = defineStore('product', () => {
   const hasNextPage = computed(() => currentPage.value < totalPages.value)
   const hasPrevPage = computed(() => currentPage.value > 1)
 
+  function normalizeSearch(value: string) {
+    return value.trim().toLowerCase()
+  }
+
   // Acciones
   async function fetchProducts() {
     loading.value = true
     error.value = null
     try {
-      const response = await productService.getProducts(currentPage.value, itemsPerPage.value, {
-        search: searchQuery.value,
-        isAvailable: availabilityFilter.value,
-        categoryId: categoryFilter.value,
-      })
-      products.value = response.data
-      totalItems.value = response.meta.totalItems
-      totalPages.value = response.meta.totalPages
-      currentPage.value = response.meta.currentPage
+      const trimmedSearch = normalizeSearch(searchQuery.value)
+
+      if (trimmedSearch) {
+        const response = await productService.getProducts(1, 1000, {
+          isAvailable: availabilityFilter.value,
+          categoryId: categoryFilter.value,
+        })
+
+        const filteredProducts = response.data.filter((product) =>
+          normalizeSearch(product.name).includes(trimmedSearch),
+        )
+
+        totalItems.value = filteredProducts.length
+        totalPages.value = Math.max(1, Math.ceil(filteredProducts.length / itemsPerPage.value))
+
+        if (currentPage.value > totalPages.value) {
+          currentPage.value = totalPages.value
+        }
+
+        const startIndex = (currentPage.value - 1) * itemsPerPage.value
+        const endIndex = startIndex + itemsPerPage.value
+
+        products.value = filteredProducts.slice(startIndex, endIndex)
+      } else {
+        const response = await productService.getProducts(currentPage.value, itemsPerPage.value, {
+          isAvailable: availabilityFilter.value,
+          categoryId: categoryFilter.value,
+        })
+        products.value = response.data
+        totalItems.value = response.meta.totalItems
+        totalPages.value = response.meta.totalPages
+        currentPage.value = response.meta.currentPage
+      }
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Error al cargar productos'
       throw err
@@ -102,26 +130,31 @@ export const useProductStore = defineStore('product', () => {
   function setItemsPerPage(items: number) {
     itemsPerPage.value = items
     currentPage.value = 1
+    void fetchProducts()
   }
 
   function setSearchQuery(query: string) {
     searchQuery.value = query
     currentPage.value = 1
+    void fetchProducts()
   }
 
   function clearSearch() {
     searchQuery.value = ''
     currentPage.value = 1
+    void fetchProducts()
   }
 
   function setAvailabilityFilter(value: boolean | null) {
     availabilityFilter.value = value
     currentPage.value = 1
+    void fetchProducts()
   }
 
   function setCategoryFilter(categoryId: string | null) {
     categoryFilter.value = categoryId
     currentPage.value = 1
+    void fetchProducts()
   }
 
   function clearFilters() {
@@ -129,6 +162,7 @@ export const useProductStore = defineStore('product', () => {
     availabilityFilter.value = null
     categoryFilter.value = null
     currentPage.value = 1
+    void fetchProducts()
   }
 
   function nextPage() {

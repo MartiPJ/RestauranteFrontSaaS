@@ -14,21 +14,25 @@ export const productService = {
     limit: number = 20,
     filters: ProductFilters = {},
   ): Promise<ProductsResponse> {
-    let endpoint = `/api/products?page=${page}&limit=${limit}&sortBy=createdAt:DESC`
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: String(limit),
+      sortBy: 'createdAt:DESC',
+    })
 
     if (filters.search && filters.search.trim()) {
-      endpoint += `&search=${encodeURIComponent(filters.search.trim())}`
+      params.set('filter.name', `$ilike:${filters.search.trim()}`)
     }
 
     if (filters.isAvailable !== null && filters.isAvailable !== undefined) {
-      endpoint += `&isAvailable=${filters.isAvailable}`
+      params.set('filter.isAvailable', String(filters.isAvailable))
     }
 
     if (filters.categoryId) {
-      endpoint += `&categoryId=${filters.categoryId}`
+      params.set('filter.category.id', filters.categoryId)
     }
 
-    return api.get<ProductsResponse>(endpoint)
+    return api.get<ProductsResponse>(`/api/products?${params.toString()}`)
   },
 
   async getProduct(id: string) {

@@ -368,19 +368,16 @@ async function loadData() {
 function handleSearch(event: Event) {
   const target = event.target as HTMLInputElement
   store.setSearchQuery(target.value)
-  store.goToPage(1) // 🔥 IMPORTANTE
 }
 
 function handleCategoryChange(event: Event) {
   const target = event.target as HTMLSelectElement
   store.setCategoryFilter(target.value || null)
-  store.goToPage(1) // 🔥
 }
 
 function handleItemsPerPageChange(event: Event) {
   const target = event.target as HTMLSelectElement
   store.setItemsPerPage(Number(target.value))
-  store.goToPage(1) // 🔥
 }
 
 function openCreateModal() {
