@@ -323,14 +323,14 @@ function handleClose() {
                       <span class="item-name">{{ item.product.name }}</span>
                     </div>
                     <span class="item-price">
-                      ${{ (parseFloat(item.product.price) * item.quantity).toFixed(2) }}
+                      Q{{ (parseFloat(item.product.price) * item.quantity).toFixed(2) }}
                     </span>
                   </div>
                 </div>
 
                 <div class="cart-total">
                   <span class="total-label">Total:</span>
-                  <span class="total-amount">${{ cartTotal.toFixed(2) }}</span>
+                  <span class="total-amount">Q{{ cartTotal.toFixed(2) }}</span>
                 </div>
 
                 <button @click="activeTab = 'cart'" class="btn-view-cart">
@@ -411,7 +411,7 @@ function handleClose() {
                     <p v-if="product.description" class="product-description">
                       {{ product.description }}
                     </p>
-                    <p class="product-price">${{ parseFloat(product.price).toFixed(2) }}</p>
+                    <p class="product-price">Q{{ parseFloat(product.price).toFixed(2) }}</p>
                   </div>
                   <button class="add-btn" title="Agregar al carrito">
                     <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -448,7 +448,7 @@ function handleClose() {
                     <div class="cart-item-info">
                       <h4>{{ item.product.name }}</h4>
                       <p class="cart-item-price">
-                        ${{ parseFloat(item.product.price).toFixed(2) }} c/u
+                        Q{{ parseFloat(item.product.price).toFixed(2) }} c/u
                       </p>
                     </div>
                     <button
@@ -485,7 +485,7 @@ function handleClose() {
                       </button>
                     </div>
                     <span class="item-subtotal">
-                      ${{ (parseFloat(item.product.price) * item.quantity).toFixed(2) }}
+                      Q{{ (parseFloat(item.product.price) * item.quantity).toFixed(2) }}
                     </span>
                   </div>
 
@@ -514,7 +514,7 @@ function handleClose() {
 
                 <div class="cart-total">
                   <span class="total-label">Total:</span>
-                  <span class="total-amount">${{ cartTotal.toFixed(2) }}</span>
+                  <span class="total-amount">Q{{ cartTotal.toFixed(2) }}</span>
                 </div>
               </div>
             </div>

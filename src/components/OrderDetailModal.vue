@@ -257,13 +257,13 @@ const formattedDate = computed(() => {
                       <div class="detail-box">
                         <span class="detail-label">Precio unitario</span>
                         <span class="detail-value"
-                          >${{ parseFloat(item.unitPrice).toFixed(2) }}</span
+                          >Q{{ parseFloat(item.unitPrice).toFixed(2) }}</span
                         >
                       </div>
                       <div class="detail-box highlight">
                         <span class="detail-label">Subtotal</span>
                         <span class="detail-value subtotal"
-                          >${{ parseFloat(item.subtotal).toFixed(2) }}</span
+                          >Q{{ parseFloat(item.subtotal).toFixed(2) }}</span
                         >
                       </div>
                     </div>
@@ -315,15 +315,15 @@ const formattedDate = computed(() => {
             <div class="totals-card">
               <div class="total-row">
                 <span>Subtotal</span>
-                <span>${{ parseFloat(order?.subtotal ?? '0').toFixed(2) }}</span>
+                <span>Q{{ parseFloat(order?.subtotal ?? '0').toFixed(2) }}</span>
               </div>
               <!-- <div class="total-row">
                 <span>Impuestos</span>
-                <span>${{ parseFloat(order.tax).toFixed(2) }}</span>
+                <span>Q{{ parseFloat(order.tax).toFixed(2) }}</span>
               </div> -->
               <div class="total-row final">
                 <span>Total</span>
-                <span class="total-amount">${{ parseFloat(order?.total ?? '0').toFixed(2) }}</span>
+                <span class="total-amount">Q{{ parseFloat(order?.total ?? '0').toFixed(2) }}</span>
               </div>
             </div>
           </div>

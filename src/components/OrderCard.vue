@@ -160,7 +160,7 @@ const timeAgo = computed(() => {
       <!-- Total -->
       <div class="order-total">
         <span class="total-label">Total:</span>
-        <span class="total-amount">${{ parseFloat(order.total).toFixed(2) }}</span>
+        <span class="total-amount">Q{{ parseFloat(order.total).toFixed(2) }}</span>
       </div>
 
       <!-- Acciones -->
