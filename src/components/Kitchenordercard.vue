@@ -39,7 +39,11 @@
           <button
             v-for="action in availableActions"
             :key="action.status"
-            @click="emit('updateOrderStatus', order.id, action.status)"
+            @click="
+              action.status === OrderStatus.CANCELLED
+                ? requestCancelOrder(order.id)
+                : emit('updateOrderStatus', order.id, action.status)
+            "
             class="btn btn-action"
             :class="`btn-${action.status}`"
             :title="action.label"
@@ -120,12 +124,24 @@
       <span class="footer-text">{{ order.notes }}</span>
     </div>
   </div>
+
+  <ConfirmationModal
+    :show="showCancelModal"
+    title="Cancelar orden"
+    :message="`¿Estás seguro de que deseas cancelar la orden #${shortOrderNumber}? Esta acción no se puede deshacer.`"
+    confirm-text="Sí, cancelar"
+    cancel-text="Mantener orden"
+    type="danger"
+    @confirm="confirmCancelOrder"
+    @cancel="showCancelModal = false"
+  />
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import type { Order, OrderProduct } from '@/types/order'
 import { OrderStatus, OrderItemStatus } from '@/types/order'
+import ConfirmationModal from '@/components/Confirmationmodal.vue'
 
 interface Props {
   order: Order & { orderProducts?: OrderProduct[] }
@@ -138,6 +154,22 @@ interface Emits {
 
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
+const showCancelModal = ref(false)
+const orderToCancel = ref<string | null>(null)
+
+// Función para solicitar cancelación de orden
+const requestCancelOrder = (orderId: string) => {
+  orderToCancel.value = orderId
+  showCancelModal.value = true
+}
+
+const confirmCancelOrder = () => {
+  if (orderToCancel.value) {
+    emit('updateOrderStatus', orderToCancel.value, OrderStatus.CANCELLED)
+  }
+  showCancelModal.value = false
+  orderToCancel.value = null
+}
 
 // Acceso seguro a los productos
 const orderProducts = computed(() => props.order.orderProducts || [])
