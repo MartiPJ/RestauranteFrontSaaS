@@ -102,6 +102,7 @@ const isRefreshing = ref(false)
 const error = ref<string | null>(null)
 const selectedFilter = ref<string>('all')
 const searchQuery = ref('')
+const knownOrderIds = ref<Set<string>>(new Set())
 
 const toast = ref({
   show: false,
@@ -222,7 +223,6 @@ const filteredOrders = computed(() => {
 
 // ===== METHODS =====
 
-// Obtener órdenes con sus productos
 const fetchOrders = async (silent = false) => {
   if (!silent) loading.value = true
   else isRefreshing.value = true
@@ -230,14 +230,11 @@ const fetchOrders = async (silent = false) => {
   error.value = null
 
   try {
-    // Obtener lista de órdenes
     const response = await orderService.getAllOrders({
       limit: 50,
-      // Solo órdenes relevantes para cocina
       status: [OrderStatus.OPEN, OrderStatus.IN_PROGRESS, OrderStatus.READY].join(','),
     })
 
-    // Cargar detalles de cada orden con sus productos
     const ordersWithDetails = await Promise.all(
       response.data.map(async (order: Order) => {
         try {
@@ -250,6 +247,20 @@ const fetchOrders = async (silent = false) => {
       }),
     )
 
+    // Detectar órdenes nuevas (solo en refreshes silenciosos)
+    if (silent && knownOrderIds.value.size > 0) {
+      const newOrders = ordersWithDetails.filter((o: Order) => !knownOrderIds.value.has(o.id))
+      if (newOrders.length > 0) {
+        playNotificationSound()
+        showToast(
+          `${newOrders.length === 1 ? 'Nueva orden recibida' : `${newOrders.length} órdenes nuevas`}`,
+          'success',
+        )
+      }
+    }
+
+    // Actualizar IDs conocidos y órdenes
+    knownOrderIds.value = new Set(ordersWithDetails.map((o: Order) => o.id))
     orders.value = ordersWithDetails
 
     if (!silent) {
@@ -266,7 +277,6 @@ const fetchOrders = async (silent = false) => {
     isRefreshing.value = false
   }
 }
-
 // Actualizar estado de orden
 const handleUpdateOrderStatus = async (orderId: string, status: OrderStatus) => {
   try {
@@ -338,6 +348,38 @@ const stopAutoRefresh = () => {
   if (refreshInterval) {
     clearInterval(refreshInterval)
     refreshInterval = null
+  }
+}
+
+// ===== AUDIO =====
+const playNotificationSound = () => {
+  try {
+    const ctx = new AudioContext()
+
+    // Nota 1
+    const osc1 = ctx.createOscillator()
+    const gain1 = ctx.createGain()
+    osc1.connect(gain1)
+    gain1.connect(ctx.destination)
+    osc1.frequency.value = 880
+    gain1.gain.setValueAtTime(0.3, ctx.currentTime)
+    gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3)
+    osc1.start(ctx.currentTime)
+    osc1.stop(ctx.currentTime + 0.3)
+
+    // Nota 2 (un tono más alto, con delay)
+    const osc2 = ctx.createOscillator()
+    const gain2 = ctx.createGain()
+    osc2.connect(gain2)
+    gain2.connect(ctx.destination)
+    osc2.frequency.value = 1100
+    gain2.gain.setValueAtTime(0, ctx.currentTime + 0.2)
+    gain2.gain.setValueAtTime(0.3, ctx.currentTime + 0.2)
+    gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5)
+    osc2.start(ctx.currentTime + 0.2)
+    osc2.stop(ctx.currentTime + 0.5)
+  } catch (e) {
+    console.warn('Audio no disponible:', e)
   }
 }
 
