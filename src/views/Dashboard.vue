@@ -101,6 +101,7 @@ const allSections: DashboardSection[] = [
     icon: TableImage,
     route: '/tables',
     colorClass: 'color-primary',
+    roles: ['waiter', 'admin', 'manager'],
   },
   {
     id: 'ordenar',
@@ -109,6 +110,7 @@ const allSections: DashboardSection[] = [
     icon: OrdersImage,
     route: '/orders',
     colorClass: 'color-secondary',
+    roles: ['waiter', 'admin', 'manager'],
   },
   {
     id: 'Categorias',
@@ -135,6 +137,7 @@ const allSections: DashboardSection[] = [
     icon: KitchenImage,
     route: '/Kitchen',
     colorClass: 'color-secondary',
+    roles: ['cook', 'admin', 'manager'],
   },
   {
     id: 'Invoice',

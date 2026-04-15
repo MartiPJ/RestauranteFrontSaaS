@@ -5,6 +5,7 @@ export enum ValidRoles {
   manager = 'manager',
   waiter = 'waiter',
   cashier = 'cashier',
+  cook = 'cook',
 }
 
 export const RoleLabels: Record<ValidRoles, string> = {
@@ -12,6 +13,7 @@ export const RoleLabels: Record<ValidRoles, string> = {
   [ValidRoles.manager]: 'Manager',
   [ValidRoles.waiter]: 'Mesero',
   [ValidRoles.cashier]: 'Cajero',
+  [ValidRoles.cook]: 'Cocinero',
 }
 
 export const RoleColors: Record<ValidRoles, string> = {
@@ -19,6 +21,7 @@ export const RoleColors: Record<ValidRoles, string> = {
   [ValidRoles.manager]: '#609abb',
   [ValidRoles.waiter]: '#5d7a90',
   [ValidRoles.cashier]: '#b4cbd8',
+  [ValidRoles.cook]: '#79c6f3',
 }
 
 export interface FullUser {

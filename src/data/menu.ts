@@ -38,18 +38,21 @@ export const menu: MenuSection[] = [
         label: 'Órdenes',
         path: '/Orders',
         svg: OrdersImage,
+        allowedRoles: ['waiter', 'admin', 'manager'],
       },
       {
         id: 'kitchen',
         label: 'Cocina',
         path: '/Kitchen',
         svg: KitchenImage,
+        allowedRoles: ['cook', 'admin', 'manager'],
       },
       {
         id: 'tables',
         label: 'Mesas',
         path: '/tables',
         svg: TableImage,
+        allowedRoles: ['waiter', 'admin', 'manager'],
       },
       {
         id: 'invoices',
