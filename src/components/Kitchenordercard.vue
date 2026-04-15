@@ -1,40 +1,17 @@
-<!-- src/components/KitchenOrderCard.vue -->
+<!-- src/components/KitchenOrderCard.vue - Rediseño optimizado para móviles -->
 <template>
   <div class="order-card" :class="statusClass">
-    <!-- HEADER: Información principal de la orden -->
+    <!-- HEADER: Compacto y claro -->
     <div class="order-header">
-      <div class="order-header-left">
+      <div class="order-header-top">
         <div class="order-badges">
           <span class="badge badge-order-number">#{{ shortOrderNumber }}</span>
           <span class="badge" :class="`badge-${order.status}`">
             <span class="badge-icon">{{ statusIcon }}</span>
             {{ statusLabel }}
           </span>
-          <span v-if="isPriority" class="badge badge-priority">
-            <span class="badge-icon">⚡</span>
-            Prioritario
-          </span>
+          <span v-if="isPriority" class="badge badge-priority"> ⚡ Prioritario </span>
         </div>
-
-        <div class="order-meta">
-          <div class="meta-item">
-            <span class="meta-icon">🕒</span>
-            <span class="meta-text">{{ timeAgo }}</span>
-          </div>
-          <div class="meta-item">
-            <span class="meta-icon">👤</span>
-            <span class="meta-text">{{ order.user?.name || 'Cliente' }}</span>
-          </div>
-          <div class="meta-item">
-            <span class="meta-icon">📍</span>
-            <span class="meta-text location-badge">
-              {{ order.table?.tableNumber ? `Mesa ${order.table.tableNumber}` : '🥡 Para llevar' }}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <div class="order-header-right">
         <div class="order-actions">
           <button
             v-for="action in availableActions"
@@ -44,25 +21,27 @@
                 ? requestCancelOrder(order.id)
                 : emit('updateOrderStatus', order.id, action.status)
             "
-            class="btn btn-action"
+            class="btn-action"
             :class="`btn-${action.status}`"
-            :title="action.label"
           >
-            <span class="btn-icon">{{ action.icon }}</span>
-            <span class="btn-text">{{ action.label }}</span>
+            {{ action.icon }} {{ action.label }}
           </button>
         </div>
       </div>
+
+      <div class="order-meta">
+        <span class="meta-item">🕒 {{ timeAgo }}</span>
+        <span class="meta-item">👤 {{ order.user?.name || 'Cliente' }}</span>
+        <span class="meta-item location">
+          📍 {{ order.table?.tableNumber ? `Mesa ${order.table.tableNumber}` : 'Para llevar' }}
+        </span>
+      </div>
     </div>
 
-    <!-- PRODUCTOS: Diseño tipo ticket, ultra legible -->
+    <!-- PRODUCTOS: Diseño compacto tipo lista -->
     <div class="order-products">
       <div class="products-header">
-        <span class="products-title">
-          <span class="title-icon">🍽️</span>
-          Productos
-        </span>
-        <span class="products-count">{{ orderProducts.length }} items</span>
+        <span>🍽️ Productos ({{ orderProducts.length }})</span>
       </div>
 
       <div class="products-list">
@@ -72,31 +51,24 @@
           class="product-item"
           :class="`product-${product.status}`"
         >
-          <!-- Estado visual del producto (barra lateral) -->
-          <div class="product-status-bar" :class="`bar-${product.status}`"></div>
+          <!-- Indicador de estado compacto -->
+          <div class="product-status-indicator" :class="`indicator-${product.status}`"></div>
 
-          <!-- Cantidad - MUY GRANDE y visible -->
-          <div class="product-quantity" :class="`quantity-${product.status}`">
-            <span class="quantity-number">{{ product.quantity }}</span>
-          </div>
-
-          <!-- Información del producto -->
-          <div class="product-info">
-            <div class="product-header-row">
-              <span class="product-name">{{ product.product.name }}</span>
-              <span class="product-status-chip" :class="`chip-${product.status}`">
-                <span class="chip-icon">{{ productStatusIcon[product.status] }}</span>
-                {{ productStatusLabel[product.status] }}
-              </span>
+          <div class="product-content">
+            <div class="product-row">
+              <div class="product-quantity" :class="`quantity-${product.status}`">
+                {{ product.quantity }}
+              </div>
+              <div class="product-name">{{ product.product.name }}</div>
+              <div class="product-status-chip" :class="`chip-${product.status}`">
+                {{ productStatusIcon[product.status] }} {{ productStatusLabel[product.status] }}
+              </div>
             </div>
 
-            <!-- Notas - Muy visibles -->
-            <div v-if="product.notes" class="product-notes">
-              <span class="notes-icon">📝</span>
-              <span class="notes-text">{{ product.notes }}</span>
-            </div>
+            <!-- Notas compactas -->
+            <div v-if="product.notes" class="product-notes">📝 {{ product.notes }}</div>
 
-            <!-- Botones de estado - Grandes, táctiles -->
+            <!-- Botones de estado compactos -->
             <div class="product-actions">
               <button
                 v-for="status in productStatuses"
@@ -107,10 +79,8 @@
                 :disabled="
                   product.status === status.value || product.status === OrderItemStatus.CANCELLED
                 "
-                :title="getButtonTitle(product.status, status.label)"
               >
-                <span class="status-icon">{{ status.icon }}</span>
-                <span class="status-label">{{ status.label }}</span>
+                {{ status.icon }} {{ getShortLabel(status.label) }}
               </button>
             </div>
           </div>
@@ -118,19 +88,16 @@
       </div>
     </div>
 
-    <!-- Tiempo total si es necesario -->
-    <div class="order-footer" v-if="order.notes">
-      <span class="footer-icon">📌</span>
-      <span class="footer-text">{{ order.notes }}</span>
-    </div>
+    <!-- Nota general de la orden -->
+    <div class="order-footer" v-if="order.notes">📌 {{ order.notes }}</div>
   </div>
 
   <ConfirmationModal
     :show="showCancelModal"
     title="Cancelar orden"
-    :message="`¿Estás seguro de que deseas cancelar la orden #${shortOrderNumber}? Esta acción no se puede deshacer.`"
+    :message="`¿Cancelar orden #${shortOrderNumber}?`"
     confirm-text="Sí, cancelar"
-    cancel-text="Mantener orden"
+    cancel-text="No"
     type="danger"
     @confirm="confirmCancelOrder"
     @cancel="showCancelModal = false"
@@ -157,7 +124,6 @@ const emit = defineEmits<Emits>()
 const showCancelModal = ref(false)
 const orderToCancel = ref<string | null>(null)
 
-// Función para solicitar cancelación de orden
 const requestCancelOrder = (orderId: string) => {
   orderToCancel.value = orderId
   showCancelModal.value = true
@@ -171,16 +137,13 @@ const confirmCancelOrder = () => {
   orderToCancel.value = null
 }
 
-// Acceso seguro a los productos
 const orderProducts = computed(() => props.order.orderProducts || [])
 
-// Número de orden corto para fácil identificación
 const shortOrderNumber = computed(() => {
   const parts = props.order.orderNumber.split('-')
   return parts[parts.length - 1]
 })
 
-// Íconos para estados de orden
 const statusIcon = computed(() => {
   const icons: Record<string, string> = {
     [OrderStatus.OPEN]: '🆕',
@@ -193,11 +156,10 @@ const statusIcon = computed(() => {
   return icons[props.order.status] || '📋'
 })
 
-// Estado de la orden en español
 const statusLabel = computed(() => {
   const labels: Record<string, string> = {
     [OrderStatus.OPEN]: 'Nueva',
-    [OrderStatus.IN_PROGRESS]: 'En proceso',
+    [OrderStatus.IN_PROGRESS]: 'Proceso',
     [OrderStatus.READY]: 'Lista',
     [OrderStatus.DELIVERED]: 'Entregada',
     [OrderStatus.PAID]: 'Pagada',
@@ -206,44 +168,25 @@ const statusLabel = computed(() => {
   return labels[props.order.status] || props.order.status
 })
 
-// Clase CSS para el borde de la tarjeta
 const statusClass = computed(() => `status-${props.order.status}`)
 
-// Si la orden es prioritaria (más de 15 minutos o más de 5 items)
 const isPriority = computed(() => {
   const minutes = elapsedMinutes.value
   const itemsCount = orderProducts.value.length
   return minutes > 15 || itemsCount > 5
 })
 
-// Si la orden está activa (para timer)
-const isActive = computed(() =>
-  [OrderStatus.OPEN, OrderStatus.IN_PROGRESS].includes(props.order.status),
-)
-
-// Minutos transcurridos
 const elapsedMinutes = computed(() => {
   const created = new Date(props.order.createdAt)
   const now = new Date()
   return Math.floor((now.getTime() - created.getTime()) / 60000)
 })
 
-// Tiempo transcurrido formateado
-const elapsedTime = computed(() => {
-  const minutes = elapsedMinutes.value
-  const hours = Math.floor(minutes / 60)
-  const mins = minutes % 60
-
-  if (hours > 0) return `${hours}h ${mins}m`
-  return `${mins}m`
-})
-
-// Tiempo relativo (hace X minutos)
 const timeAgo = computed(() => {
   const minutes = elapsedMinutes.value
 
   if (minutes < 1) return 'Ahora'
-  if (minutes < 60) return `Hace ${minutes} min`
+  if (minutes < 60) return `${minutes}m`
 
   const created = new Date(props.order.createdAt)
   const hours = created.getHours().toString().padStart(2, '0')
@@ -251,14 +194,12 @@ const timeAgo = computed(() => {
   return `${hours}:${mins}`
 })
 
-// Estados disponibles para productos
 const productStatuses = [
   { value: OrderItemStatus.PENDING, label: 'Pendiente', icon: '⏳' },
   { value: OrderItemStatus.PREPARING, label: 'Preparar', icon: '🔥' },
   { value: OrderItemStatus.SERVED, label: 'Servido', icon: '✅' },
 ]
 
-// Íconos para estados de producto
 const productStatusIcon = {
   [OrderItemStatus.PENDING]: '⏳',
   [OrderItemStatus.PREPARING]: '🔥',
@@ -266,15 +207,22 @@ const productStatusIcon = {
   [OrderItemStatus.CANCELLED]: '❌',
 }
 
-// Labels para mostrar el estado del producto
 const productStatusLabel = {
   [OrderItemStatus.PENDING]: 'Pendiente',
-  [OrderItemStatus.PREPARING]: 'En cocina',
+  [OrderItemStatus.PREPARING]: 'Cocina',
   [OrderItemStatus.SERVED]: 'Servido',
   [OrderItemStatus.CANCELLED]: 'Cancelado',
 }
 
-// Acciones disponibles según el estado de la orden
+const getShortLabel = (label: string) => {
+  const short: Record<string, string> = {
+    Pendiente: 'Pendiente',
+    Preparar: 'Preparando',
+    Servido: 'Listo',
+  }
+  return short[label] || label
+}
+
 const availableActions = computed(() => {
   const actions = []
 
@@ -314,103 +262,74 @@ const availableActions = computed(() => {
 
   return actions
 })
-
-// Función para obtener el título del botón
-const getButtonTitle = (productStatus: OrderItemStatus, buttonLabel: string) => {
-  if (productStatus === OrderItemStatus.CANCELLED) {
-    return 'Producto cancelado - No se puede modificar'
-  }
-  return buttonLabel
-}
 </script>
 
 <style scoped>
-/* ===== TARJETA PRINCIPAL ===== */
+/* ===== DISEÑO BASE COMPACTO ===== */
 .order-card {
   background: white;
-  border-radius: 20px;
-  box-shadow: 0 5px 15px rgba(5, 27, 58, 0.08);
+  border-radius: 12px;
+  margin-bottom: 12px;
   overflow: hidden;
-  transition: all 0.3s ease;
-  border-left: 6px solid transparent;
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  border: 1px solid rgba(96, 154, 187, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-left: 4px solid transparent;
 }
 
-.order-card:hover {
-  box-shadow: 0 12px 25px rgba(5, 27, 58, 0.15);
-  transform: translateY(-4px);
-}
-
-/* Estados de la orden (colores en borde izquierdo) */
+/* Estados con borde izquierdo */
 .status-open {
   border-left-color: #609abb;
-  background: linear-gradient(to right, rgba(96, 154, 187, 0.05), white);
 }
 .status-in_progress {
   border-left-color: #f59e0b;
-  background: linear-gradient(to right, rgba(245, 158, 11, 0.05), white);
 }
 .status-ready {
   border-left-color: #10b981;
-  background: linear-gradient(to right, rgba(16, 185, 129, 0.05), white);
 }
 .status-delivered {
   border-left-color: #8b5cf6;
-  background: linear-gradient(to right, rgba(139, 92, 246, 0.05), white);
 }
 .status-cancelled {
   border-left-color: #5d7a90;
-  background: #f8fafc;
-  opacity: 0.9;
+  opacity: 0.85;
 }
 
-/* ===== HEADER ===== */
+/* ===== HEADER COMPACTO ===== */
 .order-header {
-  padding: 1.25rem;
+  padding: 12px;
+  background: white;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.order-header-top {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  border-bottom: 2px solid #e4f4fc;
-  background: white;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
   flex-wrap: wrap;
-  gap: 1rem;
-}
-
-.order-header-left {
-  flex: 1;
-  min-width: 280px;
 }
 
 .order-badges {
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .badge {
-  padding: 0.35rem 1rem;
-  border-radius: 30px;
-  font-size: 0.9rem;
-  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  letter-spacing: 0.3px;
-}
-
-.badge-icon {
-  font-size: 1rem;
+  gap: 4px;
 }
 
 .badge-order-number {
   background: #051b3a;
   color: white;
-  font-size: 1rem;
-  padding: 0.35rem 1.2rem;
+  font-size: 13px;
+  font-weight: 700;
 }
 
 .badge-open {
@@ -436,359 +355,200 @@ const getButtonTitle = (productStatus: OrderItemStatus, buttonLabel: string) => 
 .badge-priority {
   background: #ef4444;
   color: white;
-  animation: pulse 2s infinite;
 }
 
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.8;
-  }
+.order-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-action {
+  padding: 4px 10px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: white;
+  white-space: nowrap;
+}
+
+.btn-in_progress {
+  background: #609abb;
+}
+.btn-ready {
+  background: #10b981;
+}
+.btn-delivered {
+  background: #8b5cf6;
+}
+.btn-cancelled {
+  background: #ef4444;
+}
+
+.btn-action:active {
+  transform: scale(0.96);
 }
 
 .order-meta {
   display: flex;
-  gap: 1.25rem;
+  gap: 12px;
+  font-size: 11px;
+  color: #666;
   flex-wrap: wrap;
 }
 
 .meta-item {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  color: #5d7a90;
-  font-size: 0.9rem;
-  font-weight: 500;
+  gap: 4px;
 }
 
-.meta-icon {
-  font-size: 1.1rem;
+.location {
+  background: #f5f5f5;
+  padding: 2px 8px;
+  border-radius: 12px;
 }
 
-.meta-text {
-  color: #051b3a;
-}
-
-.location-badge {
-  background: #e4f4fc;
-  padding: 0.25rem 0.75rem;
-  border-radius: 30px;
-  font-weight: 600;
-}
-
-.order-header-right {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.75rem;
-}
-
-.order-timer {
-  background: #051b3a;
-  color: white;
-  padding: 0.4rem 1rem;
-  border-radius: 30px;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-weight: 700;
-  font-size: 1rem;
-  transition: all 0.3s ease;
-}
-
-.order-timer.timer-warning {
-  background: #ef4444;
-  animation: pulse 2s infinite;
-}
-
-.timer-icon {
-  font-size: 1rem;
-}
-
-.timer-time {
-  font-family: monospace;
-  font-size: 1.1rem;
-}
-
-/* ===== ACCIONES DE LA ORDEN ===== */
-.order-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.btn-action {
-  padding: 0.6rem 1.2rem;
-  border: none;
-  border-radius: 10px;
-  font-weight: 600;
-  font-size: 0.9rem;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  color: white;
-}
-
-.btn-action:hover {
-  transform: translateY(-2px);
-  filter: brightness(1.1);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-}
-
-.btn-action:active {
-  transform: translateY(0);
-}
-
-.btn-icon {
-  font-size: 1.1rem;
-}
-
-.btn-in_progress {
-  background: linear-gradient(145deg, #609abb, #5d7a90);
-}
-.btn-ready {
-  background: linear-gradient(145deg, #10b981, #059669);
-}
-.btn-delivered {
-  background: linear-gradient(145deg, #8b5cf6, #7c3aed);
-}
-.btn-cancelled {
-  background: linear-gradient(145deg, #ef4444, #dc2626);
-}
-
-/* ===== PRODUCTOS ===== */
+/* ===== PRODUCTOS COMPACTOS ===== */
 .order-products {
-  padding: 1.25rem;
-  background: white;
-  flex: 1;
+  padding: 8px 12px;
 }
 
 .products-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.products-title {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #051b3a;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.title-icon {
-  font-size: 1.2rem;
-}
-
-.products-count {
-  background: #e4f4fc;
-  color: #609abb;
-  padding: 0.2rem 0.8rem;
-  border-radius: 30px;
-  font-size: 0.85rem;
+  font-size: 12px;
   font-weight: 600;
+  color: #609abb;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #e4f4fc;
 }
 
 .products-list {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 10px;
 }
 
-/* ===== ITEM DE PRODUCTO ===== */
 .product-item {
   display: flex;
-  gap: 1rem;
-  background: #f8fafc;
-  border-radius: 16px;
+  gap: 8px;
+  background: #fafafa;
+  border-radius: 10px;
   overflow: hidden;
-  transition: all 0.3s ease;
-  border: 1px solid #e4f4fc;
+  border: 1px solid #eee;
 }
 
-.product-item:hover {
-  box-shadow: 0 5px 15px rgba(5, 27, 58, 0.1);
+.product-status-indicator {
+  width: 3px;
+  min-width: 3px;
 }
 
-/* Barra lateral de estado */
-.product-status-bar {
-  width: 6px;
-  height: auto;
-  transition: all 0.3s ease;
-}
-
-.bar-pending {
+.indicator-pending {
   background: #b4cbd8;
 }
-.bar-preparing {
+.indicator-preparing {
   background: #f59e0b;
-  animation: pulse 2s infinite;
 }
-.bar-served {
+.indicator-served {
   background: #10b981;
 }
 
-/* Estados del producto */
-.product-pending {
-  background: white;
-}
-.product-preparing {
-  background: #fef3c7;
-}
-.product-served {
-  background: #d1fae5;
-  opacity: 0.9;
+.product-content {
+  flex: 1;
+  padding: 8px 8px 8px 0;
 }
 
-/* ===== CANTIDAD - MUY GRANDE ===== */
-.product-quantity {
+.product-row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  min-width: 60px;
-  padding: 0.5rem 0;
-  border-radius: 12px;
-  margin: 0.5rem 0 0.5rem 0.5rem;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
 }
 
-.quantity-pending {
+.product-quantity {
+  font-size: 16px;
+  font-weight: 800;
+  min-width: 32px;
+  text-align: center;
+  padding: 2px 6px;
+  border-radius: 8px;
   background: #e4f4fc;
+  color: #051b3a;
 }
+
 .quantity-preparing {
   background: #f59e0b;
-}
-.quantity-served {
-  background: #10b981;
-}
-
-.quantity-number {
-  font-size: 2rem;
-  font-weight: 900;
-  color: #051b3a;
-  line-height: 1;
-}
-
-.product-preparing .quantity-number,
-.product-served .quantity-number {
   color: white;
 }
 
-/* ===== INFORMACIÓN DEL PRODUCTO ===== */
-.product-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  padding: 0.75rem 0.75rem 0.75rem 0;
-}
-
-.product-header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+.quantity-served {
+  background: #10b981;
+  color: white;
 }
 
 .product-name {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #051b3a;
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  flex: 1;
 }
 
 .product-status-chip {
-  padding: 0.25rem 0.75rem;
-  border-radius: 30px;
-  font-size: 0.8rem;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 12px;
   font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-}
-
-.chip-icon {
-  font-size: 0.9rem;
+  white-space: nowrap;
 }
 
 .chip-pending {
   background: #e4f4fc;
   color: #5d7a90;
 }
+
 .chip-preparing {
-  background: #f59e0b;
-  color: white;
+  background: #fef3c7;
+  color: #f59e0b;
 }
+
 .chip-served {
-  background: #10b981;
-  color: white;
+  background: #d1fae5;
+  color: #10b981;
 }
 
-/* ===== NOTAS ===== */
+/* Notas compactas */
 .product-notes {
-  background: #fff3cd;
-  border-left: 4px solid #f59e0b;
-  padding: 0.5rem 0.75rem;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.85rem;
-}
-
-.notes-icon {
-  font-size: 1rem;
-}
-
-.notes-text {
+  font-size: 11px;
   color: #856404;
-  font-weight: 500;
-  line-height: 1.4;
+  background: #fff3cd;
+  padding: 4px 8px;
+  border-radius: 6px;
+  margin-bottom: 6px;
 }
 
-/* ===== BOTONES DE ESTADO DEL PRODUCTO ===== */
+/* Botones de estado compactos */
 .product-actions {
   display: flex;
-  gap: 0.5rem;
-  margin-top: 0.25rem;
-  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .btn-status {
   flex: 1;
-  min-width: 90px;
-  padding: 0.5rem 0.75rem;
-  border: 2px solid #e4f4fc;
+  padding: 6px 8px;
+  border: 1px solid #ddd;
   background: white;
-  border-radius: 10px;
+  border-radius: 8px;
+  font-size: 11px;
   font-weight: 600;
-  font-size: 0.8rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
   cursor: pointer;
-  transition: all 0.3s ease;
-  color: #5d7a90;
+  transition: all 0.2s ease;
+  text-align: center;
+  white-space: nowrap;
 }
 
-.status-icon {
-  font-size: 1rem;
-}
-
-.btn-status:hover:not(:disabled) {
-  background: #e4f4fc;
-  border-color: #609abb;
-  transform: translateY(-2px);
-}
-
-/* Estados activos */
 .btn-status-pending.active {
   background: #609abb;
   border-color: #609abb;
@@ -807,160 +567,70 @@ const getButtonTitle = (productStatus: OrderItemStatus, buttonLabel: string) => 
   color: white;
 }
 
+.btn-status:active {
+  transform: scale(0.97);
+}
+
 .btn-status:disabled {
-  opacity: 0.8;
-  cursor: default;
-  transform: none;
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
-/* ===== FOOTER ===== */
+/* Footer compacto */
 .order-footer {
-  padding: 0.75rem 1.25rem;
+  padding: 8px 12px;
   background: #e4f4fc;
-  border-top: 2px solid rgba(96, 154, 187, 0.2);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.9rem;
+  font-size: 11px;
   color: #051b3a;
+  border-top: 1px solid rgba(96, 154, 187, 0.2);
 }
 
-.footer-icon {
-  font-size: 1rem;
+/* ===== ESTILOS PARA PRODUCTOS CANCELADOS ===== */
+.product-cancelled {
+  opacity: 0.7;
+  background: #f5f5f5;
 }
 
-.footer-text {
-  font-weight: 500;
-  font-style: italic;
+.product-cancelled .product-name {
+  text-decoration: line-through;
+  color: #999;
 }
 
-/* ===== RESPONSIVE ===== */
-@media (max-width: 768px) {
-  .order-header {
+/* ===== RESPONSIVE EXTRA ===== */
+@media (max-width: 480px) {
+  .order-header-top {
     flex-direction: column;
-    align-items: stretch;
-  }
-
-  .order-header-right {
     align-items: stretch;
   }
 
   .order-actions {
-    flex-direction: column;
+    justify-content: stretch;
   }
 
   .btn-action {
-    justify-content: center;
+    text-align: center;
+    flex: 1;
   }
 
-  .product-item {
-    flex-direction: column;
+  .product-row {
+    flex-wrap: wrap;
   }
 
-  .product-quantity {
-    margin: 0.5rem 0.5rem 0 0.5rem;
-  }
-
-  .product-info {
-    padding: 0 0.75rem 0.75rem 0.75rem;
-  }
-
-  .product-actions {
-    flex-direction: column;
+  .product-status-chip {
+    margin-left: auto;
   }
 
   .btn-status {
-    width: 100%;
+    font-size: 10px;
+    padding: 5px 4px;
   }
 }
 
-@media (max-width: 480px) {
-  .order-badges {
-    flex-direction: column;
-  }
-
-  .badge {
-    width: 100%;
-    justify-content: center;
-  }
-
-  .order-meta {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .product-header-row {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-}
-
-/* ===== OPTIMIZACIONES TÁCTILES ===== */
+/* Optimizaciones táctiles */
 @media (hover: none) and (pointer: coarse) {
   .btn-action,
   .btn-status {
-    padding: 0.75rem 1rem;
+    min-height: 36px;
   }
-
-  .product-item {
-    cursor: default;
-  }
-}
-
-/* Estilo para productos cancelados */
-.product-cancelled {
-  background: #f8fafc;
-  opacity: 0.8;
-  border: 2px dashed #d1d5db;
-}
-
-.bar-cancelled {
-  background: #d1d5db;
-}
-
-.quantity-cancelled {
-  background: #e4e7eb;
-}
-
-.quantity-cancelled .quantity-number {
-  color: #6b7280;
-  text-decoration: line-through;
-}
-
-.product-cancelled .product-name {
-  color: #6b7280;
-  text-decoration: line-through;
-}
-
-/* Estilo para botones deshabilitados */
-.btn-status:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  background: #e4e7eb;
-  border-color: #d1d5db;
-  color: #6b7280;
-  transform: none;
-  pointer-events: none;
-}
-
-/* Tooltip para botones deshabilitados */
-.btn-status:disabled:hover::after {
-  content: attr(title);
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #051b3a;
-  color: white;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  white-space: nowrap;
-  z-index: 10;
-  pointer-events: none;
-}
-
-.btn-status {
-  position: relative;
 }
 </style>
