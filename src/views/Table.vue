@@ -225,7 +225,11 @@ const confirmDelete = async () => {
     await tableStore.deleteTable(tableToDeleteId.value)
     triggerToast('Mesa eliminada correctamente', 'success')
   } catch (error: any) {
-    triggerToast(error.message || 'Error al eliminar la mesa', 'error')
+    const raw = error.message || ''
+    const message = raw.toLowerCase().includes('valid role')
+      ? 'Necesitas ser administrador o manager para realizar esta acción.'
+      : 'Error al eliminar la mesa. Intenta de nuevo.'
+    triggerToast(message, 'error')
   } finally {
     showConfirmDelete.value = false
     tableToDeleteId.value = null

@@ -142,13 +142,23 @@ const orderButtonText = computed(() => {
           </button>
 
           <button
-            v-if="table.status === TableStatus.OCCUPIED"
+            v-if="table.status === TableStatus.OCCUPIED || table.status === TableStatus.RESERVED"
             @click="emit('changeStatus', table.id, TableStatus.AVAILABLE)"
             class="btn btn-status btn-release"
             title="Liberar mesa"
           >
             <span class="btn-icon">✅</span>
             <span class="btn-text">Liberar</span>
+          </button>
+
+          <button
+            v-if="table.status === TableStatus.RESERVED"
+            @click="emit('changeStatus', table.id, TableStatus.OCCUPIED)"
+            class="btn btn-status btn-occupy"
+            title="Ocupar mesa"
+          >
+            <span class="btn-icon">👥</span>
+            <span class="btn-text">Ocupar</span>
           </button>
 
           <button

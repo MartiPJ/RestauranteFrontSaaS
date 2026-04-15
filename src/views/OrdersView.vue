@@ -296,7 +296,7 @@ const handleUpdateItemStatus = async (itemId: string, status: OrderItemStatus) =
         :show-filters="true"
       >
         <!-- SLOT BETWEEN -->
-        <template #between>
+        <template #extra>
           <div class="available-tables-section inside-panel">
             <div class="section-header">
               <h2>Mesas Disponibles</h2>
